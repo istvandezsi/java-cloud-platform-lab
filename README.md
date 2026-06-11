@@ -15,3 +15,7 @@ This is not intended to represent a production-ready platform. Instead, it is an
 * CI/CD pipeline
 * Basic observability with metrics and dashboards
 * Documentation of design decisions and limitations
+
+## License
+
+This project is licensed under the MIT License.
