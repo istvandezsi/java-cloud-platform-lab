@@ -8,13 +8,13 @@ This is not intended to represent a production-ready platform. Instead, it is an
 
 ## Planned scope
 
-- Simple Java application
-- Docker image
-- Kubernetes deployment manifests
-- Terraform-managed infrastructure
-- CI/CD pipeline
-- Basic observability with metrics and dashboards
-- Documentation of design decisions and limitations
+* Simple Java application
+* Docker image
+* Kubernetes deployment manifests
+* Terraform-managed infrastructure
+* CI/CD pipeline
+* Basic observability with metrics and dashboards
+* Documentation of design decisions and limitations
 
 ## Run locally
 
@@ -22,20 +22,20 @@ This project requires Java 21.
 
 Run the tests:
 
-```powershell
-.\mvnw.cmd test
+```bash
+./mvnw test
 ```
 
 Start the application:
 
-```powershell
-.\mvnw.cmd spring-boot:run
+```bash
+./mvnw spring-boot:run
 ```
 
 Verify the hello endpoint:
 
-```text
-http://localhost:8080/api/hello
+```bash
+curl http://localhost:8080/api/hello
 ```
 
 Expected response:
@@ -48,8 +48,8 @@ Expected response:
 
 Verify the health endpoint:
 
-```text
-http://localhost:8080/actuator/health
+```bash
+curl http://localhost:8080/actuator/health
 ```
 
 Expected response:
