@@ -62,6 +62,50 @@ Expected response:
 
 Stop the application with `Ctrl+C`.
 
+## Run with Docker
+
+Build the Docker image:
+
+```bash
+docker build -t java-cloud-platform-lab .
+```
+
+Run the container:
+
+```bash
+docker run --rm -p 8080:8080 --name java-cloud-platform-lab java-cloud-platform-lab
+```
+
+Verify the hello endpoint:
+
+```bash
+curl http://localhost:8080/api/hello
+```
+
+Expected response:
+
+```json
+{
+  "message": "Hello from Java Cloud Platform Lab"
+}
+```
+
+Verify the health endpoint:
+
+```bash
+curl http://localhost:8080/actuator/health
+```
+
+Expected response:
+
+```json
+{
+  "status": "UP"
+}
+```
+
+Stop the container with `Ctrl+C`.
+
 ## License
 
 This project is licensed under the MIT License.
