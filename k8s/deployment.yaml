@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: java-cloud-platform-lab
+  labels:
+    app: java-cloud-platform-lab
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: java-cloud-platform-lab
+  template:
+    metadata:
+      labels:
+        app: java-cloud-platform-lab
+    spec:
+      containers:
+        - name: java-cloud-platform-lab
+          image: java-cloud-platform-lab:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 20
