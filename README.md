@@ -6,6 +6,10 @@ The goal is to connect my professional background in Java and enterprise softwar
 
 This is not intended to represent a production-ready platform. Instead, it is an incremental lab for documenting design decisions, trade-offs, and practical implementation steps.
 
+## Documentation
+
+- [Operations notes](docs/operations.md) — health checks, logs, troubleshooting commands, Kubernetes probes, and current operational scope.
+
 ## Planned scope
 
 - Simple Java application
