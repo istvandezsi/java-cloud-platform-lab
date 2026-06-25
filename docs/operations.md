@@ -43,6 +43,30 @@ Liveness probe:
 
 Using the same endpoint for both readiness and liveness is acceptable for this small local setup. Future versions may separate readiness and liveness behavior so that startup readiness, dependency readiness, and process liveness can be evaluated differently.
 
+## Kubernetes resource requests and limits
+
+The Kubernetes Deployment defines basic CPU and memory requests and limits for the application container.
+
+Requests describe the amount of CPU and memory Kubernetes should reserve when scheduling the pod:
+
+```yaml
+requests:
+  cpu: "100m"
+  memory: "256Mi"
+```
+
+Limits describe the maximum CPU and memory the container is allowed to use:
+
+```yaml
+limits:
+  cpu: "500m"
+  memory: "512Mi"
+```
+
+For this project, these values are simple local-development defaults. They are not based on production load testing or capacity planning.
+
+Adding requests and limits makes the Kubernetes configuration more explicit and avoids running the pod as a best-effort workload.
+
 ## Logs
 
 ### Local Java run
@@ -146,7 +170,7 @@ The current setup includes:
 
 Future improvements may include:
 
-* Resource requests and limits for Kubernetes workloads
+* More production-like resource sizing based on actual measurements
 * Separate readiness and liveness health groups
 * Additional Actuator endpoints for metrics
 * Prometheus and Grafana integration
