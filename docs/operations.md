@@ -19,10 +19,32 @@ Expected response:
   "status": "UP"
 }
 ```
-
 This endpoint is useful for checking whether the application is running and able to respond to HTTP requests.
 
 At this stage, the health endpoint provides a basic application health signal. Future versions may expand this with additional health groups or checks for external dependencies.
+
+## Metrics endpoint
+
+The application exposes a Prometheus metrics endpoint through Spring Boot Actuator:
+
+```bash
+curl http://localhost:8080/actuator/prometheus
+```
+
+This endpoint returns metrics in Prometheus text format.
+
+Example metric groups include:
+
+- Application startup and readiness timing
+- HTTP server request metrics
+- JVM information
+- JVM memory and buffer metrics
+- Disk space metrics
+- Executor/thread pool metrics
+
+The metrics endpoint is useful for understanding basic runtime behavior of the application. In a later milestone, these metrics can be scraped by Prometheus and visualized in Grafana.
+
+At this stage, the project only exposes the metrics endpoint. It does not yet run a Prometheus server, Grafana dashboard, alerting rules, or Kubernetes monitoring integration.
 
 ## Kubernetes health checks
 
@@ -167,13 +189,13 @@ The current setup includes:
 * Kubernetes Deployment and Service manifests
 * Basic readiness and liveness probes
 * Local verification using `curl`, Docker, and `kubectl`
+* Prometheus-format metrics exposed through Spring Boot Actuator
 
 Future improvements may include:
 
 * More production-like resource sizing based on actual measurements
 * Separate readiness and liveness health groups
-* Additional Actuator endpoints for metrics
-* Prometheus and Grafana integration
+* Prometheus and Grafana integration for scraping and visualizing metrics
 * CI checks for Docker image builds
 * More structured logging
 * Cloud infrastructure using Terraform and AWS
