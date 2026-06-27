@@ -1,3 +1,9 @@
 spring:
   application:
     name: java-cloud-platform-lab
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
