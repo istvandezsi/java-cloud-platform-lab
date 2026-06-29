@@ -103,6 +103,53 @@ http_server_requests_seconds_count
 
 This should return HTTP request metrics scraped from the Spring Boot application.
 
+## Verify Grafana dashboard
+
+Open Grafana:
+
+```text
+http://localhost:3000
+```
+
+The default local login is:
+
+```text
+admin / admin
+```
+
+Grafana is configured with Prometheus as its default data source.
+
+Open the dashboard:
+
+```text
+Java Cloud Platform Lab
+```
+
+The dashboard includes basic panels for:
+
+- Application up status
+- HTTP requests per second
+- JVM memory used
+- Application startup time
+
+The dashboard is provisioned from:
+
+```text
+grafana/dashboards/java-cloud-platform-lab.json
+```
+
+The Prometheus data source is provisioned from:
+
+```text
+grafana/provisioning/datasources/prometheus.yaml
+```
+
+The dashboard provider is configured in:
+
+```text
+grafana/provisioning/dashboards/dashboards.yaml
+```
+
 ## Stop the local monitoring setup
 
 Stop the running containers:
@@ -113,11 +160,9 @@ docker compose down
 
 ## Current scope and future improvements
 
-The current setup runs Prometheus locally and scrapes application metrics from the Spring Boot Actuator Prometheus endpoint.
-
+The current setup runs Prometheus and Grafana locally. Prometheus scrapes application metrics from the Spring Boot Actuator Prometheus endpoint, and Grafana visualizes a small set of application metrics.
 Future improvements may include:
 
-- Grafana dashboards
 - Alerting rules
 - Kubernetes-based Prometheus deployment
 - ServiceMonitor configuration
