@@ -34,3 +34,6 @@ jobs:
 
       - name: Validate Docker Compose configuration
         run: docker compose config
+
+      - name: Validate Kubernetes manifests
+        run: docker run --rm -v "${{ github.workspace }}:/workspace" ghcr.io/yannh/kubeconform:latest -strict -summary /workspace/k8s
