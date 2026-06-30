@@ -31,3 +31,6 @@ jobs:
 
       - name: Build Docker image
         run: docker build -t java-cloud-platform-lab .
+
+      - name: Validate Docker Compose configuration
+        run: docker compose config
