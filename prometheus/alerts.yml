@@ -1,0 +1,11 @@
+groups:
+  - name: java-cloud-platform-lab
+    rules:
+      - alert: ApplicationDown
+        expr: up{job="java-cloud-platform-lab"} == 0
+        for: 30s
+        labels:
+          severity: warning
+        annotations:
+          summary: "Java Cloud Platform Lab is down"
+          description: "Prometheus cannot scrape the Java Cloud Platform Lab application."
