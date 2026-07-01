@@ -103,6 +103,38 @@ http_server_requests_seconds_count
 
 This should return HTTP request metrics scraped from the Spring Boot application.
 
+## Verify Prometheus alert rule
+
+Prometheus is configured to load local alerting rules from:
+
+```text
+prometheus/alerts.yml
+```
+
+The local setup includes an `ApplicationDown` alert based on the application scrape status:
+
+```text
+up{job="java-cloud-platform-lab"} == 0
+```
+
+To verify the alert rule locally, start the monitoring stack:
+
+```bash
+docker compose up --build
+```
+
+Then open the Prometheus alerts page:
+
+```text
+http://localhost:9090/alerts
+```
+
+Confirm that the `ApplicationDown` alert is visible.
+
+When the application is running and Prometheus can scrape it successfully, the alert should remain inactive.
+
+This local setup defines alerting rules only. Notification delivery through Alertmanager, email, or Slack is out of scope.
+
 ## Verify Grafana dashboard
 
 Open Grafana:
@@ -163,7 +195,6 @@ docker compose down
 The current setup runs Prometheus and Grafana locally. Prometheus scrapes application metrics from the Spring Boot Actuator Prometheus endpoint, and Grafana visualizes a small set of application metrics.
 Future improvements may include:
 
-- Alerting rules
 - Kubernetes-based Prometheus deployment
 - ServiceMonitor configuration
 - More application-specific custom metrics
