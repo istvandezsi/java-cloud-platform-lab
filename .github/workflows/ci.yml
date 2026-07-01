@@ -37,3 +37,20 @@ jobs:
 
       - name: Validate Kubernetes manifests
         run: docker run --rm -v "${{ github.workspace }}:/workspace" ghcr.io/yannh/kubeconform:latest -strict -summary /workspace/k8s
+
+      - name: Validate Prometheus configuration
+        run: |
+          docker run --rm \
+            --entrypoint promtool \
+            -v "${{ github.workspace }}/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro" \
+            -v "${{ github.workspace }}/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro" \
+            prom/prometheus:latest \
+            check config /etc/prometheus/prometheus.yml
+
+      - name: Validate Prometheus alert rules
+        run: |
+          docker run --rm \
+            --entrypoint promtool \
+            -v "${{ github.workspace }}/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro" \
+            prom/prometheus:latest \
+            check rules /etc/prometheus/alerts.yml
