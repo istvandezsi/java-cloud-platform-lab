@@ -10,6 +10,7 @@ This is not intended to represent a production-ready platform. Instead, it is an
 
 - [Operations notes](docs/operations.md) — health checks, logs, troubleshooting commands, Kubernetes probes, and current operational scope.
 - [Monitoring notes](docs/monitoring.md) — local Prometheus setup and metrics scraping.
+- [Architecture overview](docs/architecture.md) — high-level system overview, diagrams, and CI validation flow.
 
 ## Planned scope
 
