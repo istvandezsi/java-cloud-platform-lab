@@ -2,7 +2,8 @@
 
 This document describes the local monitoring setup for the Java Cloud Platform Lab application.
 
-The project exposes Prometheus-format metrics through Spring Boot Actuator and can run a local Prometheus server using Docker Compose.
+The project exposes Prometheus-format metrics through Spring Boot Actuator and can run a local Prometheus server using
+Docker Compose.
 
 ## Metrics endpoint
 
@@ -22,6 +23,34 @@ Example metric groups include:
 - JVM memory and buffer metrics
 - Disk space metrics
 - Executor/thread pool metrics
+
+## Application-specific metrics
+
+The application exposes a custom counter for calls to the hello endpoint.
+
+Call the endpoint:
+
+```bash
+curl http://localhost:8080/api/hello
+```
+
+Then check the Prometheus metrics endpoint:
+
+```bash
+curl http://localhost:8080/actuator/prometheus
+```
+
+The custom counter should appear as:
+
+```text
+hello_requests_total
+```
+
+In Prometheus, the metric can be queried with:
+
+```text
+hello_requests_total
+```
 
 ## Local Prometheus setup
 
@@ -59,7 +88,8 @@ The scrape target is:
 app:8080
 ```
 
-This works because both services run inside the same Docker Compose network. Prometheus reaches the application by its Compose service name, not by `localhost`.
+This works because both services run inside the same Docker Compose network. Prometheus reaches the application by its
+Compose service name, not by `localhost`.
 
 ## Verify the application
 
@@ -133,7 +163,8 @@ Confirm that the `ApplicationDown` alert is visible.
 
 When the application is running and Prometheus can scrape it successfully, the alert should remain inactive.
 
-This local setup defines alerting rules only. Notification delivery through Alertmanager, email, or Slack is out of scope.
+This local setup defines alerting rules only. Notification delivery through Alertmanager, email, or Slack is out of
+scope.
 
 ## Verify Grafana dashboard
 
@@ -192,7 +223,8 @@ docker compose down
 
 ## Current scope and future improvements
 
-The current setup runs Prometheus and Grafana locally. Prometheus scrapes application metrics from the Spring Boot Actuator Prometheus endpoint, and Grafana visualizes a small set of application metrics.
+The current setup runs Prometheus and Grafana locally. Prometheus scrapes application metrics from the Spring Boot
+Actuator Prometheus endpoint, and Grafana visualizes a small set of application metrics.
 Future improvements may include:
 
 - Kubernetes-based Prometheus deployment
