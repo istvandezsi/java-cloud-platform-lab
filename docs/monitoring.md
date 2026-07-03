@@ -192,6 +192,7 @@ The dashboard includes basic panels for:
 
 - Application up status
 - HTTP requests per second
+- Hello requests per second
 - JVM memory used
 - Application startup time
 
