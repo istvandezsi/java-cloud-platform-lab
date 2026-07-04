@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Java Cloud Platform Lab - Task Board</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<main class="page">
+    <header class="page-header">
+        <div>
+            <p class="eyebrow">Java Cloud Platform Lab</p>
+            <h1>Task Board</h1>
+            <p class="intro">
+                A focused browser UI backed by the Spring Boot in-memory task API.
+            </p>
+        </div>
+
+        <div class="runtime-status" aria-label="Runtime mode">
+            <span class="status-dot"></span>
+            In-memory runtime
+        </div>
+    </header>
+
+    <section class="summary" aria-label="Task summary">
+        <article>
+            <span>Total</span>
+            <strong id="total-count">0</strong>
+        </article>
+        <article>
+            <span>Open</span>
+            <strong id="open-count">0</strong>
+        </article>
+        <article>
+            <span>Completed</span>
+            <strong id="completed-count">0</strong>
+        </article>
+    </section>
+
+    <section class="panel" aria-labelledby="create-task-heading">
+        <div class="panel-header">
+            <div>
+                <h2 id="create-task-heading">Create task</h2>
+                <p>Add a task through the REST API.</p>
+            </div>
+        </div>
+
+        <form id="task-form" class="task-form">
+            <label for="task-title">Task title</label>
+            <div class="form-row">
+                <input
+                        id="task-title"
+                        name="title"
+                        type="text"
+                        placeholder="Example: Review Kubernetes manifests"
+                        autocomplete="off"
+                        required>
+                <button type="submit">Add task</button>
+            </div>
+        </form>
+
+        <p id="status-message" class="status-message" aria-live="polite"></p>
+    </section>
+
+    <section class="panel" aria-labelledby="task-list-heading">
+        <div class="panel-header">
+            <div>
+                <h2 id="task-list-heading">Tasks</h2>
+                <p>Update, complete, or delete existing tasks.</p>
+            </div>
+
+            <button id="refresh-button" class="secondary-button" type="button">Refresh</button>
+        </div>
+
+        <div id="empty-state" class="empty-state">
+            <strong>No tasks yet.</strong>
+            <span>Create a task above to start the demo.</span>
+        </div>
+
+        <ul id="task-list" class="task-list"></ul>
+    </section>
+</main>
+
+<script src="/app.js"></script>
+</body>
+</html>

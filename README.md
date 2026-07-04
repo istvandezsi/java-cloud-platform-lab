@@ -8,19 +8,32 @@ This is not intended to represent a production-ready platform. Instead, it is an
 
 ## Documentation
 
-- [Operations notes](docs/operations.md) — health checks, logs, troubleshooting commands, Kubernetes probes, and current operational scope.
-- [Monitoring notes](docs/monitoring.md) — local Prometheus setup and metrics scraping.
-- [Architecture overview](docs/architecture.md) — high-level system overview, diagrams, and CI validation flow.
+* [Operations notes](docs/operations.md) — health checks, logs, troubleshooting commands, Kubernetes probes, resource settings, and current operational scope.
+* [Monitoring notes](docs/monitoring.md) — local Prometheus setup, Grafana provisioning, dashboard notes, and alert rule verification.
+* [Architecture overview](docs/architecture.md) — high-level system overview, diagrams, and CI validation flow.
 
-## Planned scope
+## Project scope
 
-- Simple Java application
-- Docker image
-- Kubernetes deployment manifests
-- Terraform-managed infrastructure
-- CI/CD pipeline
-- Basic observability with metrics and dashboards
-- Documentation of design decisions and limitations
+Current scope:
+
+* Simple Java/Spring Boot application
+* In-memory task API
+* Simple browser-based task board UI
+* Docker image
+* Local Docker Compose runtime
+* Kubernetes deployment manifests
+* CI validation for application and platform configuration
+* Basic observability with Actuator, Micrometer, Prometheus, Grafana, and alert rules
+* Documentation of design decisions, trade-offs, and limitations
+
+Planned future scope:
+
+* API validation and consistent error responses
+* OpenAPI documentation
+* Persistence
+* Terraform-managed AWS infrastructure
+* AWS deployment experiments
+* Kubernetes monitoring improvements
 
 ## Run locally
 
@@ -165,6 +178,26 @@ Expected response:
   "status": "UP"
 }
 ```
+
+## Browser UI
+
+When the application is running, open:
+
+```text
+http://localhost:8080/
+```
+
+The browser UI provides a small task board backed by the in-memory task API.
+
+From the browser, you can:
+
+* create tasks
+* list existing tasks
+* update task titles
+* mark tasks completed
+* delete tasks
+
+Tasks are stored in memory and are reset when the application restarts.
 
 ## Task API
 
