@@ -1,6 +1,7 @@
 package hu.dezsi.cloudlab;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -39,9 +40,20 @@ public class TaskController {
         return taskService.getTask(id);
     }
 
+    @PatchMapping("/{id}")
+    Task updateTaskTitle(@PathVariable long id, @RequestBody UpdateTaskRequest request) {
+        return taskService.updateTaskTitle(id, request.title());
+    }
+
     @PatchMapping("/{id}/complete")
     Task completeTask(@PathVariable long id) {
         return taskService.completeTask(id);
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void deleteTask(@PathVariable long id) {
+        taskService.deleteTask(id);
     }
 
     @ExceptionHandler(TaskNotFoundException.class)
@@ -51,6 +63,9 @@ public class TaskController {
     }
 
     record CreateTaskRequest(String title) {
+    }
+
+    record UpdateTaskRequest(String title) {
     }
 
     record ErrorResponse(String message) {

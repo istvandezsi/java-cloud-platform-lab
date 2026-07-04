@@ -37,10 +37,25 @@ public class TaskService {
         return task;
     }
 
+    public Task updateTaskTitle(long id, String title) {
+        Task existing = getTask(id);
+        Task updated = new Task(existing.id(), title, existing.completed());
+        tasks.put(id, updated);
+        return updated;
+    }
+
     public Task completeTask(long id) {
         Task existing = getTask(id);
         Task completed = new Task(existing.id(), existing.title(), true);
         tasks.put(id, completed);
         return completed;
+    }
+
+    public void deleteTask(long id) {
+        Task removed = tasks.remove(id);
+
+        if (removed == null) {
+            throw new TaskNotFoundException(id);
+        }
     }
 }

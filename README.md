@@ -200,6 +200,14 @@ Get a task by id:
 curl http://localhost:8080/api/tasks/1
 ```
 
+Update a task title:
+
+```bash
+curl -X PATCH http://localhost:8080/api/tasks/1 \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Updated task title"}'
+```
+
 Mark a task completed:
 
 ```bash
@@ -211,9 +219,15 @@ Expected response:
 ```json
 {
   "id": 1,
-  "title": "Try the task API",
+  "title": "Updated task title",
   "completed": true
 }
+```
+
+Delete a task:
+
+```bash
+curl -X DELETE http://localhost:8080/api/tasks/1
 ```
 
 Tasks are stored in memory and are reset when the application restarts.
