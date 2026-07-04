@@ -11,6 +11,7 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -62,6 +63,37 @@ class TaskControllerTest {
     }
 
     @Test
+    void updateTaskTitleChangesTitleAndKeepsCompletedStatus() throws Exception {
+        long taskId = createTask("Original title");
+
+        mockMvc.perform(patch("/api/tasks/{id}/complete", taskId))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(patch("/api/tasks/{id}", taskId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"Updated title"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.id", is((int) taskId)))
+                .andExpect(jsonPath("$.title", is("Updated title")))
+                .andExpect(jsonPath("$.completed", is(true)));
+    }
+
+    @Test
+    void updateMissingTaskReturnsNotFound() throws Exception {
+        mockMvc.perform(patch("/api/tasks/{id}", 999999)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"Updated title"}
+                                """))
+                .andExpect(status().isNotFound())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.message", is("Task not found: 999999")));
+    }
+
+    @Test
     void completeTaskMarksTaskCompleted() throws Exception {
         long taskId = createTask("Complete task");
 
@@ -71,6 +103,18 @@ class TaskControllerTest {
                 .andExpect(jsonPath("$.id", is((int) taskId)))
                 .andExpect(jsonPath("$.title", is("Complete task")))
                 .andExpect(jsonPath("$.completed", is(true)));
+    }
+
+    @Test
+    void deleteTaskRemovesTask() throws Exception {
+        long taskId = createTask("Delete task");
+
+        mockMvc.perform(delete("/api/tasks/{id}", taskId))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/tasks/{id}", taskId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message", is("Task not found: " + taskId)));
     }
 
     @Test
