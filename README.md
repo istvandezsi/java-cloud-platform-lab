@@ -10,7 +10,9 @@ This is not intended to represent a production-ready platform. Instead, it is an
 
 - [Operations notes](docs/operations.md) — health checks, logs, troubleshooting commands, Kubernetes probes, and current operational scope.
 - [Monitoring notes](docs/monitoring.md) — local Prometheus setup and metrics scraping.
-- [Architecture overview](docs/architecture.md) — high-level system overview, diagrams, and CI validation flow.
+- [Architecture overview](docs/architecture.mdOperations notes](docs/operations.md) — health checks, logs, troubleshooting commands, Kubernetes probes, and current operational scope.
+- [Monitoring notes](docs/monitoring.md) — local Prometheus setup and metrics scraping.
+- [) — high-level system overview, diagrams, and CI validation flow.
 
 ## Planned scope
 
@@ -165,6 +167,26 @@ Expected response:
   "status": "UP"
 }
 ```
+
+## Browser UI
+
+When the application is running, open:
+
+```text
+http://localhost:8080/
+```
+
+The browser UI provides a small task board backed by the in-memory task API.
+
+From the browser, you can:
+
+- create tasks
+- list existing tasks
+- update task titles
+- mark tasks completed
+- delete tasks
+
+Tasks are stored in memory and are reset when the application restarts.
 
 ## Task API
 
