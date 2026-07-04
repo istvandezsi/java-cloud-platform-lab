@@ -60,6 +60,44 @@ Then verify the application using the commands in [Verify the application](#veri
 
 Stop the container with `Ctrl+C`.
 
+## Run with Docker Compose
+
+Use Docker Compose to run the application together with the local monitoring stack:
+
+```bash
+docker compose up --build
+```
+
+The application is available at:
+
+```text
+http://localhost:8080
+```
+
+Prometheus is available at:
+
+```text
+http://localhost:9090
+```
+
+Grafana is available at:
+
+```text
+http://localhost:3000
+```
+
+The default local Grafana login is:
+
+```text
+admin / admin
+```
+
+Stop the stack:
+
+```bash
+docker compose down
+```
+
 ## Run with Kubernetes
 
 This project can be run in a local Kubernetes cluster, such as Docker Desktop Kubernetes.
@@ -127,6 +165,58 @@ Expected response:
   "status": "UP"
 }
 ```
+
+## Task API
+
+The application includes a small in-memory task API.
+
+List tasks:
+
+```bash
+curl http://localhost:8080/api/tasks
+```
+
+Create a task:
+
+```bash
+curl -X POST http://localhost:8080/api/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Try the task API"}'
+```
+
+Expected response:
+
+```json
+{
+  "id": 1,
+  "title": "Try the task API",
+  "completed": false
+}
+```
+
+Get a task by id:
+
+```bash
+curl http://localhost:8080/api/tasks/1
+```
+
+Mark a task completed:
+
+```bash
+curl -X PATCH http://localhost:8080/api/tasks/1/complete
+```
+
+Expected response:
+
+```json
+{
+  "id": 1,
+  "title": "Try the task API",
+  "completed": true
+}
+```
+
+Tasks are stored in memory and are reset when the application restarts.
 
 ## License
 
