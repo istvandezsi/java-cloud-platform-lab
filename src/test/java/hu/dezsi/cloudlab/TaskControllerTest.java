@@ -41,6 +41,30 @@ class TaskControllerTest {
     }
 
     @Test
+    void createTaskWithBlankTitleReturnsBadRequest() throws Exception {
+        mockMvc.perform(post("/api/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"   "}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.message", is("Task title must not be blank")));
+    }
+
+    @Test
+    void createTaskWithMissingTitleReturnsBadRequest() throws Exception {
+        mockMvc.perform(post("/api/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.message", is("Task title must not be blank")));
+    }
+
+    @Test
     void listTasksIncludesCreatedTask() throws Exception {
         createTask("List task API");
 
@@ -79,6 +103,34 @@ class TaskControllerTest {
                 .andExpect(jsonPath("$.id", is((int) taskId)))
                 .andExpect(jsonPath("$.title", is("Updated title")))
                 .andExpect(jsonPath("$.completed", is(true)));
+    }
+
+    @Test
+    void updateTaskTitleWithBlankTitleReturnsBadRequest() throws Exception {
+        long taskId = createTask("Original title");
+
+        mockMvc.perform(patch("/api/tasks/{id}", taskId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"   "}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.message", is("Task title must not be blank")));
+    }
+
+    @Test
+    void updateTaskTitleWithMissingTitleReturnsBadRequest() throws Exception {
+        long taskId = createTask("Original title");
+
+        mockMvc.perform(patch("/api/tasks/{id}", taskId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.message", is("Task title must not be blank")));
     }
 
     @Test
