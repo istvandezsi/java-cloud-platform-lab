@@ -1,6 +1,10 @@
 package hu.dezsi.cloudlab;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.HttpStatus;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,7 +35,7 @@ public class TaskController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    Task createTask(@RequestBody CreateTaskRequest request) {
+    Task createTask(@Valid @RequestBody CreateTaskRequest request) {
         return taskService.createTask(request.title());
     }
 
@@ -41,7 +45,7 @@ public class TaskController {
     }
 
     @PatchMapping("/{id}")
-    Task updateTaskTitle(@PathVariable long id, @RequestBody UpdateTaskRequest request) {
+    Task updateTaskTitle(@PathVariable long id, @Valid @RequestBody UpdateTaskRequest request) {
         return taskService.updateTaskTitle(id, request.title());
     }
 
@@ -56,16 +60,27 @@ public class TaskController {
         taskService.deleteTask(id);
     }
 
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    ErrorResponse handleValidationError(MethodArgumentNotValidException exception) {
+        String message = exception.getBindingResult().getFieldErrors().stream()
+                .map(FieldError::getDefaultMessage)
+                .findFirst()
+                .orElse("Invalid request");
+
+        return new ErrorResponse(message);
+    }
+
     @ExceptionHandler(TaskNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     ErrorResponse handleTaskNotFound(TaskNotFoundException exception) {
         return new ErrorResponse(exception.getMessage());
     }
 
-    record CreateTaskRequest(String title) {
+    record CreateTaskRequest(@NotBlank(message = "Task title must not be blank") String title) {
     }
 
-    record UpdateTaskRequest(String title) {
+    record UpdateTaskRequest(@NotBlank(message = "Task title must not be blank") String title) {
     }
 
     record ErrorResponse(String message) {

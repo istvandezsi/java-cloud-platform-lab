@@ -17,7 +17,7 @@ This is not intended to represent a production-ready platform. Instead, it is an
 Current scope:
 
 * Simple Java/Spring Boot application
-* In-memory task API
+* In-memory task API with validation and consistent JSON error responses
 * Simple browser-based task board UI
 * Docker image
 * Local Docker Compose runtime
@@ -28,7 +28,6 @@ Current scope:
 
 Planned future scope:
 
-* API validation and consistent error responses
 * OpenAPI documentation
 * Persistence
 * Terraform-managed AWS infrastructure
@@ -203,6 +202,8 @@ Tasks are stored in memory and are reset when the application restarts.
 
 The application includes a small in-memory task API.
 
+Task titles are validated by the API. A task title must not be missing or blank. Validation failures return a JSON error response.
+
 List tasks:
 
 ```bash
@@ -227,6 +228,22 @@ Expected response:
 }
 ```
 
+Create a task with an invalid title:
+
+```bash
+curl -i -X POST http://localhost:8080/api/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"title":"   "}'
+```
+
+Expected response:
+
+```json
+{
+  "message": "Task title must not be blank"
+}
+```
+
 Get a task by id:
 
 ```bash
@@ -239,6 +256,22 @@ Update a task title:
 curl -X PATCH http://localhost:8080/api/tasks/1 \
   -H "Content-Type: application/json" \
   -d '{"title":"Updated task title"}'
+```
+
+Update a task with an invalid title:
+
+```bash
+curl -i -X PATCH http://localhost:8080/api/tasks/1 \
+  -H "Content-Type: application/json" \
+  -d '{"title":"   "}'
+```
+
+Expected response:
+
+```json
+{
+  "message": "Task title must not be blank"
+}
 ```
 
 Mark a task completed:
