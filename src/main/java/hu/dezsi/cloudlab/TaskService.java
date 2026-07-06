@@ -1,61 +1,115 @@
 package hu.dezsi.cloudlab;
 
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Service;
 
-import java.util.Comparator;
+import javax.sql.DataSource;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.Map;
 
 @Service
 public class TaskService {
 
-    private final AtomicLong sequence = new AtomicLong();
-    private final ConcurrentMap<Long, Task> tasks = new ConcurrentHashMap<>();
+    private final JdbcClient jdbcClient;
+    private final SimpleJdbcInsert insertTask;
+
+    public TaskService(JdbcClient jdbcClient, DataSource dataSource) {
+        this.jdbcClient = jdbcClient;
+        this.insertTask = new SimpleJdbcInsert(dataSource)
+                .withTableName("tasks")
+                .usingColumns("title", "completed")
+                .usingGeneratedKeyColumns("id");
+    }
 
     public List<Task> listTasks() {
-        return tasks.values().stream()
-                .sorted(Comparator.comparingLong(Task::id))
-                .toList();
+        return jdbcClient.sql("""
+                        SELECT id, title, completed
+                        FROM tasks
+                        ORDER BY id
+                        """)
+                .query(this::mapTask)
+                .list();
     }
 
     public Task createTask(String title) {
-        long id = sequence.incrementAndGet();
-        Task task = new Task(id, title, false);
-        tasks.put(id, task);
-        return task;
+        Number id = insertTask.executeAndReturnKey(Map.of(
+                "title", title,
+                "completed", false
+        ));
+
+        return findTask(id.longValue());
     }
 
     public Task getTask(long id) {
-        Task task = tasks.get(id);
-
-        if (task == null) {
-            throw new TaskNotFoundException(id);
-        }
-
-        return task;
+        return findTask(id);
     }
 
     public Task updateTaskTitle(long id, String title) {
-        Task existing = getTask(id);
-        Task updated = new Task(existing.id(), title, existing.completed());
-        tasks.put(id, updated);
-        return updated;
+        int updatedRows = jdbcClient.sql("""
+                        UPDATE tasks
+                        SET title = :title
+                        WHERE id = :id
+                        """)
+                .param("id", id)
+                .param("title", title)
+                .update();
+
+        if (updatedRows == 0) {
+            throw new TaskNotFoundException(id);
+        }
+
+        return findTask(id);
     }
 
     public Task completeTask(long id) {
-        Task existing = getTask(id);
-        Task completed = new Task(existing.id(), existing.title(), true);
-        tasks.put(id, completed);
-        return completed;
+        int updatedRows = jdbcClient.sql("""
+                        UPDATE tasks
+                        SET completed = TRUE
+                        WHERE id = :id
+                        """)
+                .param("id", id)
+                .update();
+
+        if (updatedRows == 0) {
+            throw new TaskNotFoundException(id);
+        }
+
+        return findTask(id);
     }
 
     public void deleteTask(long id) {
-        Task removed = tasks.remove(id);
+        int deletedRows = jdbcClient.sql("""
+                        DELETE FROM tasks
+                        WHERE id = :id
+                        """)
+                .param("id", id)
+                .update();
 
-        if (removed == null) {
+        if (deletedRows == 0) {
             throw new TaskNotFoundException(id);
         }
+    }
+
+    private Task findTask(long id) {
+        return jdbcClient.sql("""
+                        SELECT id, title, completed
+                        FROM tasks
+                        WHERE id = :id
+                        """)
+                .param("id", id)
+                .query(this::mapTask)
+                .optional()
+                .orElseThrow(() -> new TaskNotFoundException(id));
+    }
+
+    private Task mapTask(ResultSet resultSet, int rowNumber) throws SQLException {
+        return new Task(
+                resultSet.getLong("id"),
+                resultSet.getString("title"),
+                resultSet.getBoolean("completed")
+        );
     }
 }

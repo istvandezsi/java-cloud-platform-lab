@@ -1,15 +1,20 @@
 # Java Cloud Platform Lab
 
-A small learning and reference project exploring how a Java application can be packaged, deployed, and operated using modern cloud/platform engineering practices.
+A small learning and reference project exploring how a Java application can be packaged, deployed, and operated using
+modern cloud/platform engineering practices.
 
-The goal is to connect my professional background in Java and enterprise software with my current focus on Kubernetes, Terraform, AWS, CI/CD, observability, and infrastructure automation.
+The goal is to connect my professional background in Java and enterprise software with my current focus on Kubernetes,
+Terraform, AWS, CI/CD, observability, and infrastructure automation.
 
-This is not intended to represent a production-ready platform. Instead, it is an incremental lab for documenting design decisions, trade-offs, and practical implementation steps.
+This is not intended to represent a production-ready platform. Instead, it is an incremental lab for documenting design
+decisions, trade-offs, and practical implementation steps.
 
 ## Documentation
 
-* [Operations notes](docs/operations.md) — health checks, logs, troubleshooting commands, Kubernetes probes, resource settings, and current operational scope.
-* [Monitoring notes](docs/monitoring.md) — local Prometheus setup, Grafana provisioning, dashboard notes, and alert rule verification.
+* [Operations notes](docs/operations.md) — health checks, logs, troubleshooting commands, Kubernetes probes, resource
+  settings, and current operational scope.
+* [Monitoring notes](docs/monitoring.md) — local Prometheus setup, Grafana provisioning, dashboard notes, and alert rule
+  verification.
 * [Architecture overview](docs/architecture.md) — high-level system overview, diagrams, and CI validation flow.
 
 ## Project scope
@@ -17,10 +22,11 @@ This is not intended to represent a production-ready platform. Instead, it is an
 Current scope:
 
 * Simple Java/Spring Boot application
-* In-memory task API with validation and consistent JSON error responses
+* PostgreSQL-backed task API with validation and consistent JSON error responses
+* Database schema migration with Flyway
 * Simple browser-based task board UI
 * Docker image
-* Local Docker Compose runtime
+* Local Docker Compose runtime with PostgreSQL, Prometheus, and Grafana
 * Kubernetes deployment manifests
 * CI validation for application and platform configuration
 * Basic observability with Actuator, Micrometer, Prometheus, Grafana, and alert rules
@@ -29,7 +35,6 @@ Current scope:
 Planned future scope:
 
 * OpenAPI documentation
-* Persistence
 * Terraform-managed AWS infrastructure
 * AWS deployment experiments
 * Kubernetes monitoring improvements
@@ -44,7 +49,10 @@ Run the tests:
 ./mvnw test
 ```
 
-Start the application:
+The application expects a PostgreSQL database when running outside the test profile. For a complete local runtime,
+prefer Docker Compose.
+
+Start the application directly only when a PostgreSQL database is available:
 
 ```bash
 ./mvnw spring-boot:run
@@ -62,19 +70,24 @@ Build the Docker image:
 docker build -t java-cloud-platform-lab .
 ```
 
-Run the container:
+Run the container only when a PostgreSQL database is available through datasource environment variables:
 
 ```bash
-docker run --rm -p 8080:8080 --name java-cloud-platform-lab java-cloud-platform-lab
+docker run --rm -p 8080:8080 \
+  -e SPRING_DATASOURCE_URL=jdbc:postgresql://host.docker.internal:5432/cloudlab \
+  -e SPRING_DATASOURCE_USERNAME=cloudlab \
+  -e SPRING_DATASOURCE_PASSWORD=cloudlab \
+  --name java-cloud-platform-lab \
+  java-cloud-platform-lab
 ```
 
-Then verify the application using the commands in [Verify the application](#verify-the-application).
+For a complete local runtime, prefer Docker Compose.
 
 Stop the container with `Ctrl+C`.
 
 ## Run with Docker Compose
 
-Use Docker Compose to run the application together with the local monitoring stack:
+Use Docker Compose to run the application together with PostgreSQL and the local monitoring stack:
 
 ```bash
 docker compose up --build
@@ -84,6 +97,20 @@ The application is available at:
 
 ```text
 http://localhost:8080
+```
+
+PostgreSQL is available locally at:
+
+```text
+localhost:5432
+```
+
+The default local database settings are:
+
+```text
+database: cloudlab
+username: cloudlab
+password: cloudlab
 ```
 
 Prometheus is available at:
@@ -104,15 +131,25 @@ The default local Grafana login is:
 admin / admin
 ```
 
+Task data is stored in the Docker Compose PostgreSQL volume and survives application container restarts.
+
 Stop the stack:
 
 ```bash
 docker compose down
 ```
 
+Remove the stack and delete the PostgreSQL data volume:
+
+```bash
+docker compose down -v
+```
+
+Use `docker compose down -v` only when you intentionally want to remove the local database data.
+
 ## Run with Kubernetes
 
-This project can be run in a local Kubernetes cluster, such as Docker Desktop Kubernetes.
+This project includes Kubernetes manifests for the application deployment and service.
 
 Build the Docker image first:
 
@@ -147,6 +184,9 @@ Remove the Kubernetes resources:
 ```bash
 kubectl delete -f k8s/
 ```
+
+The current Kubernetes manifests do not include a PostgreSQL deployment. A database must be provided separately for the
+application to start successfully in Kubernetes.
 
 ## Verify the application
 
@@ -186,7 +226,7 @@ When the application is running, open:
 http://localhost:8080/
 ```
 
-The browser UI provides a small task board backed by the in-memory task API.
+The browser UI provides a small task board backed by the Spring Boot task API.
 
 From the browser, you can:
 
@@ -196,13 +236,14 @@ From the browser, you can:
 * mark tasks completed
 * delete tasks
 
-Tasks are stored in memory and are reset when the application restarts.
+When running with Docker Compose, tasks are stored in PostgreSQL and survive application container restarts.
 
 ## Task API
 
-The application includes a small in-memory task API.
+The application includes a small task API backed by PostgreSQL.
 
-Task titles are validated by the API. A task title must not be missing or blank. Validation failures return a JSON error response.
+Task titles are validated by the API. A task title must not be missing or blank. Validation failures return a JSON error
+response.
 
 List tasks:
 
@@ -296,7 +337,7 @@ Delete a task:
 curl -X DELETE http://localhost:8080/api/tasks/1
 ```
 
-Tasks are stored in memory and are reset when the application restarts.
+When running with Docker Compose, task data is persisted in the PostgreSQL volume.
 
 ## License
 
