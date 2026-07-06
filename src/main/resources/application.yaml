@@ -1,6 +1,12 @@
 spring:
   application:
     name: java-cloud-platform-lab
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/cloudlab}
+    username: ${SPRING_DATASOURCE_USERNAME:cloudlab}
+    password: ${SPRING_DATASOURCE_PASSWORD:cloudlab}
+  flyway:
+    enabled: true
 
 management:
   endpoints:
