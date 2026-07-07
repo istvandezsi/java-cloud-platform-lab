@@ -176,8 +176,9 @@ Using the same endpoint for both readiness and liveness is acceptable for this s
 separate readiness and liveness behavior so that startup readiness, dependency readiness, and process liveness can be
 evaluated differently.
 
-The current Kubernetes manifests do not deploy PostgreSQL. A database must be provided separately through the
-application datasource configuration.
+The current Kubernetes manifests do not deploy PostgreSQL. A database must be provided separately through the application
+datasource configuration. The datasource URL is configured through a ConfigMap, while the datasource username and
+password are configured through a Secret.
 
 ## Kubernetes resource requests and limits
 
@@ -328,6 +329,13 @@ kubectl get pods
 kubectl get services
 ```
 
+Check whether the datasource ConfigMap and Secret exist:
+
+```bash
+kubectl get configmap java-cloud-platform-lab-datasource-config
+kubectl get secret java-cloud-platform-lab-datasource-secret
+```
+
 Describe the pod if it is not running correctly:
 
 ```bash
@@ -365,6 +373,7 @@ The current setup includes:
 * A Docker image for local containerized execution
 * A Docker Compose runtime with PostgreSQL, Prometheus, and Grafana
 * Kubernetes Deployment and Service manifests
+* External datasource configuration through Kubernetes ConfigMap and Secret
 * Basic readiness and liveness probes
 * Local verification using `curl`, Docker, Docker Compose, and `kubectl`
 * Prometheus-format metrics exposed through Spring Boot Actuator

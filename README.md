@@ -27,7 +27,7 @@ Current scope:
 * Simple browser-based task board UI
 * Docker image
 * Local Docker Compose runtime with PostgreSQL, Prometheus, and Grafana
-* Kubernetes deployment manifests
+* Kubernetes deployment manifests with external datasource configuration
 * CI validation for application and platform configuration
 * Basic observability with Actuator, Micrometer, Prometheus, Grafana, and alert rules
 * Documentation of design decisions, trade-offs, and limitations
@@ -151,6 +151,14 @@ Use `docker compose down -v` only when you intentionally want to remove the loca
 
 This project includes Kubernetes manifests for the application deployment and service.
 
+The Kubernetes manifests configure the application to connect to an externally provided PostgreSQL database. PostgreSQL
+itself is not deployed by this project.
+
+Before applying the manifests, review and adjust:
+
+* `k8s/configmap.yaml` — datasource URL
+* `k8s/secret.yaml` — datasource username and password
+
 Build the Docker image first:
 
 ```bash
@@ -184,9 +192,6 @@ Remove the Kubernetes resources:
 ```bash
 kubectl delete -f k8s/
 ```
-
-The current Kubernetes manifests do not include a PostgreSQL deployment. A database must be provided separately for the
-application to start successfully in Kubernetes.
 
 ## Verify the application
 
