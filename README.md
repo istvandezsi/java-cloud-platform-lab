@@ -30,11 +30,11 @@ Current scope:
 * Kubernetes deployment manifests with external datasource configuration
 * CI validation for application and platform configuration
 * Basic observability with Actuator, Micrometer, Prometheus, Grafana, and alert rules
+* OpenAPI documentation with Swagger UI
 * Documentation of design decisions, trade-offs, and limitations
 
 Planned future scope:
 
-* OpenAPI documentation
 * Terraform-managed AWS infrastructure
 * AWS deployment experiments
 * Kubernetes monitoring improvements
@@ -235,6 +235,23 @@ Expected response:
   "status": "UP"
 }
 ```
+
+## API documentation
+
+When the application is running, Swagger UI is available at:
+
+```text
+http://localhost:8080/swagger-ui.html
+```
+
+The OpenAPI JSON document is available at:
+
+```text
+http://localhost:8080/v3/api-docs
+```
+
+The OpenAPI documentation describes the task API endpoints, request bodies, response bodies, validation errors, and
+not-found errors.
 
 ## Browser UI
 

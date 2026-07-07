@@ -8,6 +8,9 @@ spring:
   flyway:
     enabled: true
 
+springdoc:
+  show-actuator: true
+
 management:
   endpoints:
     web:
