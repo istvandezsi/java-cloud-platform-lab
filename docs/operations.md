@@ -180,6 +180,21 @@ The current Kubernetes manifests do not deploy PostgreSQL. A database must be pr
 datasource configuration. The datasource URL is configured through a ConfigMap, while the datasource username and
 password are configured through a Secret.
 
+### Local Kubernetes testing with Docker Desktop
+
+For local testing with Docker Desktop Kubernetes and the Docker Compose PostgreSQL service, the datasource URL can be set
+to:
+
+```text
+jdbc:postgresql://host.docker.internal:5432/cloudlab
+```
+
+This lets the application pod connect to PostgreSQL through the host machine. This is a local development convenience,
+not a general Kubernetes default.
+
+For a real Kubernetes cluster, use a PostgreSQL hostname that is reachable from that cluster, such as a managed database
+endpoint or an internal service DNS name.
+
 ## Kubernetes resource requests and limits
 
 The Kubernetes Deployment defines basic CPU and memory requests and limits for the application container.
