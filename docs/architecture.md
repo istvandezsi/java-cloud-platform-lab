@@ -73,17 +73,24 @@ The Kubernetes manifests define a basic application deployment and service.
 
 ```mermaid
 flowchart TD
-    Service[Kubernetes Service] --> Pod[Application Pod]
+    ConfigMap[Datasource ConfigMap] --> Pod[Application Pod]
+    Secret[Datasource Secret] --> Pod
+    Service[Kubernetes Service] --> Pod
     Pod --> Container[Spring Boot container]
     Container --> Health[Health endpoint]
     Container --> Metrics[Metrics endpoint]
     Container --> ExternalDatabase[(External PostgreSQL database)]
 ```
 
-The deployment includes health probes and resource requests and limits.
+The deployment includes health probes, resource requests and limits, and datasource environment variables.
 
-The current Kubernetes manifests do not deploy PostgreSQL. A database must be provided separately through the
-application datasource configuration.
+Datasource configuration is split between:
+
+- A ConfigMap for the datasource URL
+- A Secret for the datasource username and password
+
+The current Kubernetes manifests do not deploy PostgreSQL. A database must be provided separately through the application
+datasource configuration.
 
 ## CI validation flow
 
@@ -113,6 +120,7 @@ The project currently covers:
 - Docker image build
 - Local Docker Compose runtime
 - Kubernetes manifests
+- External datasource configuration through Kubernetes ConfigMap and Secret
 - Health checks
 - Resource requests and limits
 - Prometheus metrics
