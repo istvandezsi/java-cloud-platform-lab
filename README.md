@@ -52,7 +52,13 @@ Run the tests:
 The application expects a PostgreSQL database when running outside the test profile. For a complete local runtime,
 prefer Docker Compose.
 
-Start the application directly only when a PostgreSQL database is available:
+To run the application directly with Maven, start PostgreSQL first:
+
+```bash
+docker compose up -d db
+```
+
+Then start the application:
 
 ```bash
 ./mvnw spring-boot:run
@@ -61,6 +67,12 @@ Start the application directly only when a PostgreSQL database is available:
 Then verify the application using the commands in [Verify the application](#verify-the-application).
 
 Stop the application with `Ctrl+C`.
+
+Stop the local PostgreSQL service when you no longer need it:
+
+```bash
+docker compose down
+```
 
 ## Run with Docker
 
@@ -152,7 +164,8 @@ Use `docker compose down -v` only when you intentionally want to remove the loca
 This project includes Kubernetes manifests for the application deployment and service.
 
 The Kubernetes manifests configure the application to connect to an externally provided PostgreSQL database. PostgreSQL
-itself is not deployed by this project.
+itself is not deployed by this project. The external database must be available and reachable from the Kubernetes cluster
+before the application pod can start successfully.
 
 Before applying the manifests, review and adjust:
 
