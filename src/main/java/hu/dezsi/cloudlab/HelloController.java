@@ -2,10 +2,13 @@ package hu.dezsi.cloudlab;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "Hello", description = "Basic example endpoint")
 @RestController
 @RequestMapping("/api")
 public class HelloController {
@@ -18,6 +21,7 @@ public class HelloController {
                 .register(meterRegistry);
     }
 
+    @Operation(summary = "Return a hello message")
     @GetMapping("/hello")
     Greeting hello() {
         helloRequests.increment();

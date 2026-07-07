@@ -1,5 +1,12 @@
 package hu.dezsi.cloudlab;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.HttpStatus;
@@ -18,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+@Tag(name = "Tasks", description = "Create, read, update, complete, and delete tasks")
 @RestController
 @RequestMapping("/api/tasks")
 public class TaskController {
@@ -28,35 +36,90 @@ public class TaskController {
         this.taskService = taskService;
     }
 
+    @Operation(summary = "List tasks")
+    @ApiResponse(responseCode = "200", description = "Tasks returned")
     @GetMapping
     List<Task> listTasks() {
         return taskService.listTasks();
     }
 
+    @Operation(summary = "Create a task")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Task created"),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid task title",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+            )
+    })
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     Task createTask(@Valid @RequestBody CreateTaskRequest request) {
         return taskService.createTask(request.title());
     }
 
+    @Operation(summary = "Get a task by id")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Task returned"),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Task not found",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+            )
+    })
     @GetMapping("/{id}")
-    Task getTask(@PathVariable long id) {
+    Task getTask(@Parameter(description = "Task id", example = "1") @PathVariable long id) {
         return taskService.getTask(id);
     }
 
+    @Operation(summary = "Update a task title")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Task updated"),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid task title",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Task not found",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+            )
+    })
     @PatchMapping("/{id}")
-    Task updateTaskTitle(@PathVariable long id, @Valid @RequestBody UpdateTaskRequest request) {
+    Task updateTaskTitle(
+            @Parameter(description = "Task id", example = "1") @PathVariable long id,
+            @Valid @RequestBody UpdateTaskRequest request
+    ) {
         return taskService.updateTaskTitle(id, request.title());
     }
 
+    @Operation(summary = "Mark a task completed")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Task completed"),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Task not found",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+            )
+    })
     @PatchMapping("/{id}/complete")
-    Task completeTask(@PathVariable long id) {
+    Task completeTask(@Parameter(description = "Task id", example = "1") @PathVariable long id) {
         return taskService.completeTask(id);
     }
 
+    @Operation(summary = "Delete a task")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Task deleted"),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Task not found",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+            )
+    })
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    void deleteTask(@PathVariable long id) {
+    void deleteTask(@Parameter(description = "Task id", example = "1") @PathVariable long id) {
         taskService.deleteTask(id);
     }
 
@@ -77,12 +140,26 @@ public class TaskController {
         return new ErrorResponse(exception.getMessage());
     }
 
-    record CreateTaskRequest(@NotBlank(message = "Task title must not be blank") String title) {
+    @Schema(description = "Request body for creating a task")
+    record CreateTaskRequest(
+            @Schema(description = "Task title", example = "Try the task API")
+            @NotBlank(message = "Task title must not be blank")
+            String title
+    ) {
     }
 
-    record UpdateTaskRequest(@NotBlank(message = "Task title must not be blank") String title) {
+    @Schema(description = "Request body for updating a task title")
+    record UpdateTaskRequest(
+            @Schema(description = "Task title", example = "Updated task title")
+            @NotBlank(message = "Task title must not be blank")
+            String title
+    ) {
     }
 
-    record ErrorResponse(String message) {
+    @Schema(description = "Error response")
+    record ErrorResponse(
+            @Schema(description = "Error message", example = "Task title must not be blank")
+            String message
+    ) {
     }
 }
