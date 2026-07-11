@@ -11,6 +11,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -51,7 +52,7 @@ class TaskMetricsTest {
     }
 
     @Test
-    void recordsValidationError() throws Exception {
+    void recordsCreateValidationError() throws Exception {
         double before = counterValue("create", "validation_error");
 
         mockMvc.perform(post("/api/tasks")
@@ -62,6 +63,21 @@ class TaskMetricsTest {
                 .andExpect(status().isBadRequest());
 
         assertThat(counterValue("create", "validation_error"))
+                .isEqualTo(before + 1);
+    }
+
+    @Test
+    void recordsUpdateValidationError() throws Exception {
+        double before = counterValue("update", "validation_error");
+
+        mockMvc.perform(patch("/api/tasks/{id}", 999999)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"   "}
+                                """))
+                .andExpect(status().isBadRequest());
+
+        assertThat(counterValue("update", "validation_error"))
                 .isEqualTo(before + 1);
     }
 

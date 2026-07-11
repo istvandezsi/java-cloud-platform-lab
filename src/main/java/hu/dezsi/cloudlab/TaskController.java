@@ -24,11 +24,17 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 
 @Tag(name = "Tasks", description = "Create, read, update, complete, and delete tasks")
 @RestController
 @RequestMapping("/api/tasks")
 public class TaskController {
+
+    private static final Map<Class<?>, String> VALIDATION_OPERATION_BY_REQUEST_TYPE = Map.of(
+            CreateTaskRequest.class, "create",
+            UpdateTaskRequest.class, "update"
+    );
 
     private final TaskService taskService;
     private final TaskMetrics taskMetrics;
@@ -160,14 +166,11 @@ public class TaskController {
     }
 
     private void recordValidationError(MethodArgumentNotValidException exception) {
-        String methodName = exception.getParameter().getMethod().getName();
+        Class<?> requestType = exception.getParameter().getParameterType();
+        String operation = VALIDATION_OPERATION_BY_REQUEST_TYPE.get(requestType);
 
-        switch (methodName) {
-            case "createTask" -> taskMetrics.recordValidationError("create");
-            case "updateTaskTitle" -> taskMetrics.recordValidationError("update");
-            default -> {
-                // No task operation metric is recorded for unrelated validation errors.
-            }
+        if (operation != null) {
+            taskMetrics.recordValidationError(operation);
         }
     }
 

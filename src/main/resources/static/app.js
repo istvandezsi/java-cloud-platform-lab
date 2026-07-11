@@ -8,20 +8,22 @@ const totalCount = document.querySelector("#total-count");
 const openCount = document.querySelector("#open-count");
 const completedCount = document.querySelector("#completed-count");
 
+async function readErrorMessage(response) {
+    const fallbackMessage = `Request failed with status ${response.status}`;
+
+    try {
+        const error = await response.json();
+        return error.message || fallbackMessage;
+    } catch {
+        return fallbackMessage;
+    }
+}
+
 async function requestJson(url, options = {}) {
     const response = await fetch(url, options);
 
     if (!response.ok) {
-        let message = `Request failed with status ${response.status}`;
-
-        try {
-            const error = await response.json();
-            message = error.message || message;
-        } catch {
-            // Keep the generic message when the response has no JSON body.
-        }
-
-        throw new Error(message);
+        throw new Error(await readErrorMessage(response));
     }
 
     if (response.status === 204) {
