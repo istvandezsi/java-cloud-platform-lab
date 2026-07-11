@@ -284,16 +284,53 @@ Open the dashboard:
 Java Cloud Platform Lab
 ```
 
-The dashboard includes basic panels for:
+The dashboard includes panels for:
 
 * Application up status
 * HTTP requests per second
 * Hello requests per second
 * JVM memory used
 * Application startup time
+* Successful task operations per second, grouped by operation
+* Unsuccessful task operations per second, grouped by operation and outcome
 
-The task API metric is not included in the current dashboard yet. Adding task API panels is planned as a separate
-follow-up change.
+Generate successful task API activity:
+
+```bash
+for i in {1..5}; do
+  curl -s http://localhost:8080/api/tasks > /dev/null
+done
+
+for i in {1..5}; do
+  curl -s -X POST http://localhost:8080/api/tasks \
+    -H "Content-Type: application/json" \
+    -d "{\"title\":\"Grafana task $i\"}" > /dev/null
+done
+```
+
+Generate unsuccessful task API outcomes:
+
+```bash
+curl -s http://localhost:8080/api/tasks/999999 > /dev/null
+
+curl -s -X POST http://localhost:8080/api/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"title":"   "}' > /dev/null
+```
+
+Allow Prometheus to collect the new counter values, then refresh the dashboard.
+
+The **Successful task operations per second** panel should display separate series such as `list` and `create`.
+
+The **Unsuccessful task operations per second** panel should display series such as:
+
+```text
+get / not_found
+create / validation_error
+```
+
+The panels use five-minute rates. A newly created metric series may require more than one Prometheus scrape before it
+appears as a rate.
 
 The dashboard is provisioned from:
 
@@ -324,11 +361,10 @@ docker compose down
 ## Current scope and future improvements
 
 The current setup runs Prometheus and Grafana locally. Prometheus scrapes application metrics from the Spring Boot
-Actuator Prometheus endpoint, and Grafana visualizes a small set of application metrics.
+Actuator Prometheus endpoint, and Grafana visualizes application health, runtime, HTTP, and task API metrics.
 
 Future improvements may include:
 
-* Adding task API metrics to the Grafana dashboard
 * Kubernetes-based Prometheus deployment
 * ServiceMonitor configuration
 * Additional application-specific metrics
