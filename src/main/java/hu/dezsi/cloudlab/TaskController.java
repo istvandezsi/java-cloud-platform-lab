@@ -31,16 +31,18 @@ import java.util.List;
 public class TaskController {
 
     private final TaskService taskService;
+    private final TaskMetrics taskMetrics;
 
-    public TaskController(TaskService taskService) {
+    public TaskController(TaskService taskService, TaskMetrics taskMetrics) {
         this.taskService = taskService;
+        this.taskMetrics = taskMetrics;
     }
 
     @Operation(summary = "List tasks")
     @ApiResponse(responseCode = "200", description = "Tasks returned")
     @GetMapping
     List<Task> listTasks() {
-        return taskService.listTasks();
+        return taskMetrics.record("list", taskService::listTasks);
     }
 
     @Operation(summary = "Create a task")
@@ -55,7 +57,10 @@ public class TaskController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     Task createTask(@Valid @RequestBody CreateTaskRequest request) {
-        return taskService.createTask(request.title());
+        return taskMetrics.record(
+                "create",
+                () -> taskService.createTask(request.title())
+        );
     }
 
     @Operation(summary = "Get a task by id")
@@ -69,7 +74,10 @@ public class TaskController {
     })
     @GetMapping("/{id}")
     Task getTask(@Parameter(description = "Task id", example = "1") @PathVariable long id) {
-        return taskService.getTask(id);
+        return taskMetrics.record(
+                "get",
+                () -> taskService.getTask(id)
+        );
     }
 
     @Operation(summary = "Update a task title")
@@ -91,7 +99,10 @@ public class TaskController {
             @Parameter(description = "Task id", example = "1") @PathVariable long id,
             @Valid @RequestBody UpdateTaskRequest request
     ) {
-        return taskService.updateTaskTitle(id, request.title());
+        return taskMetrics.record(
+                "update",
+                () -> taskService.updateTaskTitle(id, request.title())
+        );
     }
 
     @Operation(summary = "Mark a task completed")
@@ -105,7 +116,10 @@ public class TaskController {
     })
     @PatchMapping("/{id}/complete")
     Task completeTask(@Parameter(description = "Task id", example = "1") @PathVariable long id) {
-        return taskService.completeTask(id);
+        return taskMetrics.record(
+                "complete",
+                () -> taskService.completeTask(id)
+        );
     }
 
     @Operation(summary = "Delete a task")
@@ -120,12 +134,17 @@ public class TaskController {
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void deleteTask(@Parameter(description = "Task id", example = "1") @PathVariable long id) {
-        taskService.deleteTask(id);
+        taskMetrics.record(
+                "delete",
+                () -> taskService.deleteTask(id)
+        );
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     ErrorResponse handleValidationError(MethodArgumentNotValidException exception) {
+        recordValidationError(exception);
+
         String message = exception.getBindingResult().getFieldErrors().stream()
                 .map(FieldError::getDefaultMessage)
                 .findFirst()
@@ -138,6 +157,18 @@ public class TaskController {
     @ResponseStatus(HttpStatus.NOT_FOUND)
     ErrorResponse handleTaskNotFound(TaskNotFoundException exception) {
         return new ErrorResponse(exception.getMessage());
+    }
+
+    private void recordValidationError(MethodArgumentNotValidException exception) {
+        String methodName = exception.getParameter().getMethod().getName();
+
+        switch (methodName) {
+            case "createTask" -> taskMetrics.recordValidationError("create");
+            case "updateTaskTitle" -> taskMetrics.recordValidationError("update");
+            default -> {
+                // No task operation metric is recorded for unrelated validation errors.
+            }
+        }
     }
 
     @Schema(description = "Request body for creating a task")

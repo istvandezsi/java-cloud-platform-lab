@@ -17,16 +17,20 @@ This endpoint returns metrics in Prometheus text format.
 
 Example metric groups include:
 
-- Application startup and readiness timing
-- HTTP server request metrics
-- JVM information
-- JVM memory and buffer metrics
-- Disk space metrics
-- Executor/thread pool metrics
+* Application startup and readiness timing
+* HTTP server request metrics
+* JDBC connection pool metrics
+* JVM information
+* JVM memory and buffer metrics
+* Disk space metrics
+* Executor/thread pool metrics
+* Application-specific API metrics
 
 ## Application-specific metrics
 
-The application exposes a custom counter for calls to the hello endpoint.
+The application exposes custom counters for the hello endpoint and task API operations.
+
+### Hello endpoint metric
 
 Call the endpoint:
 
@@ -50,6 +54,90 @@ In Prometheus, the metric can be queried with:
 
 ```text
 hello_requests_total
+```
+
+### Task API operation metric
+
+Task API activity is recorded with the following metric:
+
+```text
+cloudlab_task_api_operations_total
+```
+
+The metric uses two low-cardinality labels:
+
+* `operation` identifies the task operation
+* `outcome` identifies the result
+
+Supported operation values are:
+
+* `list`
+* `get`
+* `create`
+* `update`
+* `complete`
+* `delete`
+
+Supported outcome values are:
+
+* `success`
+* `not_found`
+* `validation_error`
+
+The metric does not include task IDs, task titles, exception messages, or other user-provided values.
+
+Create a task:
+
+```bash
+curl -X POST http://localhost:8080/api/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Verify task metrics"}'
+```
+
+Request a task that does not exist:
+
+```bash
+curl http://localhost:8080/api/tasks/999999
+```
+
+Submit an invalid task:
+
+```bash
+curl -X POST http://localhost:8080/api/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"title":"   "}'
+```
+
+Then check the metrics endpoint:
+
+```bash
+curl http://localhost:8080/actuator/prometheus
+```
+
+Example output:
+
+```text
+cloudlab_task_api_operations_total{operation="create",outcome="success"} 1.0
+cloudlab_task_api_operations_total{operation="create",outcome="validation_error"} 1.0
+cloudlab_task_api_operations_total{operation="get",outcome="not_found"} 1.0
+```
+
+In Prometheus, all task API operations can be queried with:
+
+```text
+cloudlab_task_api_operations_total
+```
+
+Successful task creation operations can be queried with:
+
+```text
+cloudlab_task_api_operations_total{operation="create",outcome="success"}
+```
+
+Task API operation rates can be queried with:
+
+```text
+rate(cloudlab_task_api_operations_total[5m])
 ```
 
 ## Local Prometheus setup
@@ -133,6 +221,14 @@ http_server_requests_seconds_count
 
 This should return HTTP request metrics scraped from the Spring Boot application.
 
+Query the custom task API metric:
+
+```text
+cloudlab_task_api_operations_total
+```
+
+This should return task API operation counters after one or more task endpoints have been called.
+
 ## Verify Prometheus alert rule
 
 Prometheus is configured to load local alerting rules from:
@@ -190,11 +286,14 @@ Java Cloud Platform Lab
 
 The dashboard includes basic panels for:
 
-- Application up status
-- HTTP requests per second
-- Hello requests per second
-- JVM memory used
-- Application startup time
+* Application up status
+* HTTP requests per second
+* Hello requests per second
+* JVM memory used
+* Application startup time
+
+The task API metric is not included in the current dashboard yet. Adding task API panels is planned as a separate
+follow-up change.
 
 The dashboard is provisioned from:
 
@@ -226,8 +325,10 @@ docker compose down
 
 The current setup runs Prometheus and Grafana locally. Prometheus scrapes application metrics from the Spring Boot
 Actuator Prometheus endpoint, and Grafana visualizes a small set of application metrics.
+
 Future improvements may include:
 
-- Kubernetes-based Prometheus deployment
-- ServiceMonitor configuration
-- More application-specific custom metrics
+* Adding task API metrics to the Grafana dashboard
+* Kubernetes-based Prometheus deployment
+* ServiceMonitor configuration
+* Additional application-specific metrics
