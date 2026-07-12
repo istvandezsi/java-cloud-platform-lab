@@ -54,3 +54,30 @@ jobs:
             -v "${{ github.workspace }}/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro" \
             prom/prometheus:latest \
             check rules /etc/prometheus/alerts.yml
+
+  terraform:
+    name: Terraform validation
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: terraform
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: "1.15.8"
+          terraform_wrapper: false
+
+      - name: Check Terraform formatting
+        run: terraform fmt -check -recursive
+
+      - name: Initialize Terraform
+        run: terraform init -backend=false -input=false -lockfile=readonly
+
+      - name: Validate Terraform configuration
+        run: terraform validate -no-color
