@@ -1,0 +1,5 @@
+bucket       = "replace-with-terraform-state-bucket"
+key          = "java-cloud-platform-lab/dev/terraform.tfstate"
+region       = "eu-central-1"
+encrypt      = true
+use_lockfile = true
