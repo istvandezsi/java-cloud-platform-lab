@@ -30,3 +30,17 @@ variable "project_name" {
     error_message = "project_name must not be blank."
   }
 }
+
+variable "vpc_cidr" {
+  description = "IPv4 CIDR block used for the VPC and derived subnets."
+  type        = string
+  nullable    = false
+
+  validation {
+    condition = (
+      can(cidrnetmask(var.vpc_cidr)) &&
+      can(cidrsubnet(var.vpc_cidr, 8, 11))
+    )
+    error_message = "vpc_cidr must be a valid IPv4 CIDR block with enough address space for the derived subnets."
+  }
+}
