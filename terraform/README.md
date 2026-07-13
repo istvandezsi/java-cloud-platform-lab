@@ -3,15 +3,14 @@
 This directory contains the Terraform root module for the Java Cloud Platform Lab AWS infrastructure.
 
 The current configuration establishes the Terraform and AWS provider requirements, shared input variables, resource
-naming conventions, common tags, and a partial Amazon S3 backend declaration. It intentionally provisions no AWS
-resources.
+naming conventions, common tags, a partial Amazon S3 backend declaration, and the foundational VPC network.
 
 ## Prerequisites
 
 Install:
 
 * Terraform 1.15 or a later compatible 1.x release
-* AWS CLI, when AWS authentication or resource operations are introduced
+* AWS CLI for AWS authentication and resource operations
 
 Confirm the Terraform installation:
 
@@ -46,8 +45,49 @@ The AWS provider and S3 backend can obtain credentials through standard AWS cred
 For a locally configured AWS CLI profile, Terraform can use the profile selected through the `AWS_PROFILE` environment
 variable.
 
-The current configuration does not create infrastructure. AWS authentication becomes relevant when configuring the S3
-backend or when later changes introduce AWS resources and Terraform plan or apply operations.
+Formatting, initialization without the backend, and validation do not require access to an AWS account. AWS
+authentication is required when configuring the S3 backend or running operations such as `terraform plan` and
+`terraform apply`.
+
+## Network architecture
+
+The root module defines one IPv4 VPC across two Availability Zones in the configured AWS region.
+
+The network contains:
+
+* two public subnets, one in each selected Availability Zone
+* two private subnets, one in each selected Availability Zone
+* one internet gateway
+* one public route table with a default route through the internet gateway
+* one private route table without an internet or NAT route
+
+For the example VPC CIDR of `10.0.0.0/16`, Terraform derives these subnet ranges:
+
+| Subnet           | CIDR           |
+|------------------|----------------|
+| Public subnet 1  | `10.0.0.0/24`  |
+| Public subnet 2  | `10.0.1.0/24`  |
+| Private subnet 1 | `10.0.10.0/24` |
+| Private subnet 2 | `10.0.11.0/24` |
+
+The public subnets have a route to the internet gateway. Automatic public IPv4 assignment is disabled, so resources must
+request a public address explicitly when required.
+
+The private subnets currently have no route outside the VPC. NAT or private service endpoints can be introduced later
+when workloads require outbound connectivity.
+
+The VPC, subnets, internet gateway, and route tables inherit the provider-level common tags and receive descriptive
+`Name` tags.
+
+## Outputs
+
+The root module exposes:
+
+* `vpc_id`
+* `public_subnet_ids`
+* `private_subnet_ids`
+
+Subnet IDs are returned in position order.
 
 ## Remote state
 
@@ -150,17 +190,22 @@ terraform -chdir=terraform validate -no-color
 Validation checks that the configuration is syntactically valid and internally consistent. It does not provision or
 modify infrastructure.
 
+The network resources are created only when `terraform apply` is run with valid AWS credentials.
+
 ## Current limitations
 
 The current Terraform configuration intentionally contains:
 
-* no AWS resources
+* no NAT gateway or NAT instance
+* no VPC endpoints
+* no security groups or custom network ACLs
+* no IPv6 configuration
+* no load balancer, compute, or database resources
 * no state-bucket provisioning
 * no active remote-state configuration
 * no state migration
 * no modules
 * no environment-specific directories
-* no outputs
 * no deployment workflow
 
-Actual AWS infrastructure and remote-state activation will be introduced through separate follow-up changes.
+Additional infrastructure and remote-state activation will be introduced through separate follow-up changes.

@@ -1,3 +1,4 @@
 aws_region  = "eu-central-1"
 environment = "dev"
 project_name = "java-cloud-platform-lab"
+vpc_cidr     = "10.0.0.0/16"
