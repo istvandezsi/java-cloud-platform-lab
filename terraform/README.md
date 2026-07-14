@@ -3,7 +3,8 @@
 This directory contains the Terraform root module for the Java Cloud Platform Lab AWS infrastructure.
 
 The current configuration establishes the Terraform and AWS provider requirements, shared input variables, resource
-naming conventions, common tags, a partial Amazon S3 backend declaration, and the foundational VPC network.
+naming conventions, common tags, a partial Amazon S3 backend declaration, the foundational VPC network, and an Amazon
+ECR repository for application images.
 
 ## Prerequisites
 
@@ -11,11 +12,24 @@ Install:
 
 * Terraform 1.15 or a later compatible 1.x release
 * AWS CLI for AWS authentication and resource operations
+* Docker for building and publishing the application image
 
 Confirm the Terraform installation:
 
 ```bash
 terraform version
+```
+
+Confirm the AWS CLI installation:
+
+```bash
+aws --version
+```
+
+Confirm the Docker installation:
+
+```bash
+docker version
 ```
 
 ## Local configuration
@@ -79,6 +93,101 @@ when workloads require outbound connectivity.
 The VPC, subnets, internet gateway, and route tables inherit the provider-level common tags and receive descriptive
 `Name` tags.
 
+## Container image registry
+
+The root module defines one private Amazon ECR repository for the application container image.
+
+The repository:
+
+* enables image scanning when an image is pushed
+* uses immutable image tags
+* inherits the provider-level common tags
+* can be removed by `terraform destroy` even when it contains images
+
+Immutable tags prevent an existing version tag from being replaced. Use a unique image tag, such as the Git commit SHA,
+for every published image.
+
+The repository must exist before an image can be pushed. The following commands are intended for use after the Terraform
+configuration has been applied.
+
+### Obtain the repository URL
+
+From the repository root:
+
+```bash
+ECR_REPOSITORY_URL=$(terraform -chdir=terraform output -raw ecr_repository_url)
+```
+
+Extract the registry hostname:
+
+```bash
+ECR_REGISTRY=${ECR_REPOSITORY_URL%%/*}
+```
+
+Set the AWS region to the same value used by the Terraform `aws_region` variable:
+
+```bash
+AWS_REGION=eu-central-1
+```
+
+When using a different Terraform region, replace `eu-central-1` accordingly.
+
+### Authenticate Docker to ECR
+
+```bash
+aws ecr get-login-password --region "$AWS_REGION" \
+  | docker login \
+      --username AWS \
+      --password-stdin "$ECR_REGISTRY"
+```
+
+The ECR authentication token is temporary, so repeat this command when the token expires.
+
+### Select an image tag
+
+Use the current Git commit SHA as the image version:
+
+```bash
+IMAGE_TAG=$(git rev-parse --short HEAD)
+```
+
+Verify the selected values:
+
+```bash
+echo "$ECR_REPOSITORY_URL"
+echo "$IMAGE_TAG"
+```
+
+### Build the application image
+
+```bash
+docker build \
+  --tag "java-cloud-platform-lab:$IMAGE_TAG" \
+  .
+```
+
+### Tag the image for ECR
+
+```bash
+docker tag \
+  "java-cloud-platform-lab:$IMAGE_TAG" \
+  "$ECR_REPOSITORY_URL:$IMAGE_TAG"
+```
+
+### Push the image
+
+```bash
+docker push "$ECR_REPOSITORY_URL:$IMAGE_TAG"
+```
+
+The resulting image reference can later be used by the ECS task definition:
+
+```text
+<ecr-repository-url>:<git-commit-sha>
+```
+
+Image publishing is currently a manual operation. CI does not authenticate to AWS or push container images.
+
 ## Outputs
 
 The root module exposes:
@@ -86,8 +195,11 @@ The root module exposes:
 * `vpc_id`
 * `public_subnet_ids`
 * `private_subnet_ids`
+* `ecr_repository_url`
 
 Subnet IDs are returned in position order.
+
+The ECR repository URL is used when tagging, publishing, and later deploying the application image.
 
 ## Remote state
 
@@ -190,7 +302,7 @@ terraform -chdir=terraform validate -no-color
 Validation checks that the configuration is syntactically valid and internally consistent. It does not provision or
 modify infrastructure.
 
-The network resources are created only when `terraform apply` is run with valid AWS credentials.
+The network and ECR resources are created only when `terraform apply` is run with valid AWS credentials.
 
 ## Current limitations
 
@@ -201,6 +313,7 @@ The current Terraform configuration intentionally contains:
 * no security groups or custom network ACLs
 * no IPv6 configuration
 * no load balancer, compute, or database resources
+* no automated image-publishing workflow
 * no state-bucket provisioning
 * no active remote-state configuration
 * no state migration
