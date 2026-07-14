@@ -18,3 +18,8 @@ output "private_subnet_ids" {
     aws_subnet.private[position].id
   ]
 }
+
+output "ecr_repository_url" {
+  description = "URL of the ECR repository for the application image."
+  value       = aws_ecr_repository.application.repository_url
+}
