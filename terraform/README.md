@@ -3,8 +3,8 @@
 This directory contains the Terraform root module for the Java Cloud Platform Lab AWS infrastructure.
 
 The current configuration establishes the Terraform and AWS provider requirements, shared input variables, resource
-naming conventions, common tags, a partial Amazon S3 backend declaration, the foundational VPC network, and an Amazon
-ECR repository for application images.
+naming conventions, common tags, a partial Amazon S3 backend declaration, the foundational VPC network, an Amazon ECR
+repository for application images, and a private Amazon RDS PostgreSQL database.
 
 ## Prerequisites
 
@@ -42,7 +42,20 @@ cp terraform/terraform.tfvars.example terraform/terraform.tfvars
 
 Edit `terraform/terraform.tfvars` when different local values are required.
 
+The example configuration includes development-oriented values for:
+
+* the AWS region
+* the deployment environment
+* the project name
+* the VPC CIDR
+* the PostgreSQL database name
+* the PostgreSQL master username
+* the RDS instance class
+
 The local `terraform.tfvars` file is ignored by Git and must not contain committed credentials or secrets.
+
+A database password is not accepted as a Terraform input. RDS generates and manages the master password through AWS
+Secrets Manager.
 
 ## AWS credentials
 
@@ -188,6 +201,74 @@ The resulting image reference can later be used by the ECS task definition:
 
 Image publishing is currently a manual operation. CI does not authenticate to AWS or push container images.
 
+## PostgreSQL database
+
+The root module defines one private Amazon RDS PostgreSQL instance for the application persistence layer.
+
+The database configuration includes:
+
+* PostgreSQL 17
+* a development-oriented instance class supplied through `database_instance_class`
+* 20 GiB of General Purpose SSD storage using `gp3`
+* encrypted storage
+* a single-AZ deployment
+* no public accessibility
+* no deletion protection
+* no automated backup retention
+* no final snapshot during deletion
+
+These settings favor a small, disposable learning environment rather than a production database.
+
+### Database topology
+
+The RDS DB subnet group contains both existing private subnets across two Availability Zones.
+
+```mermaid
+flowchart LR
+    PrivateSubnet1[Private subnet 1] --> SubnetGroup[RDS DB subnet group]
+    PrivateSubnet2[Private subnet 2] --> SubnetGroup
+    SubnetGroup --> Database[(RDS PostgreSQL)]
+    DatabaseSecurityGroup[Database security group<br/>No ingress rules] -. attached to .-> Database
+    FutureApplicationSecurityGroup[Future ECS application security group] -. future PostgreSQL rule .-> DatabaseSecurityGroup
+```
+
+The subnet group spans two Availability Zones so RDS has valid private placement options. The current database is
+single-AZ, so the instance itself runs in one Availability Zone rather than maintaining a standby instance in the other
+Availability Zone.
+
+The database is assigned only the dedicated database security group and is not publicly accessible.
+
+### Database credentials
+
+RDS manages the master password through AWS Secrets Manager.
+
+Terraform supplies the configured master username but does not supply, expose, or commit a database password. The
+generated secret contains the master credentials and is identified through the `database_master_secret_arn` output.
+
+The later ECS infrastructure will grant its task execution role permission to retrieve the managed secret and will
+provide the database connection settings to the application.
+
+### Current database access
+
+The database security group intentionally has no inbound rules.
+
+Consequently, the database cannot currently accept application connections, including connections from other resources
+inside the VPC. The later ECS infrastructure will add a PostgreSQL ingress rule that allows port `5432` only from the
+application security group.
+
+No public, internet-wide, or VPC-wide database ingress rule is defined.
+
+### Database lifecycle
+
+The database is configured for straightforward lab teardown:
+
+* `backup_retention_period` is `0`
+* `deletion_protection` is disabled
+* `skip_final_snapshot` is enabled
+
+Destroying the environment therefore removes the database without creating a final snapshot. Database data should be
+treated as disposable, and this lifecycle configuration should not be reused for a production database.
+
 ## Outputs
 
 The root module exposes:
@@ -196,10 +277,19 @@ The root module exposes:
 * `public_subnet_ids`
 * `private_subnet_ids`
 * `ecr_repository_url`
+* `database_endpoint`
+* `database_port`
+* `database_name`
+* `database_master_secret_arn`
 
 Subnet IDs are returned in position order.
 
 The ECR repository URL is used when tagging, publishing, and later deploying the application image.
+
+The database endpoint contains the RDS DNS address without the port. The port is exposed separately through
+`database_port`.
+
+The database master-secret ARN identifies the RDS-managed Secrets Manager secret. It does not expose the secret value.
 
 ## Remote state
 
@@ -302,7 +392,7 @@ terraform -chdir=terraform validate -no-color
 Validation checks that the configuration is syntactically valid and internally consistent. It does not provision or
 modify infrastructure.
 
-The network and ECR resources are created only when `terraform apply` is run with valid AWS credentials.
+The network, ECR, and RDS resources are created only when `terraform apply` is run with valid AWS credentials.
 
 ## Current limitations
 
@@ -310,9 +400,13 @@ The current Terraform configuration intentionally contains:
 
 * no NAT gateway or NAT instance
 * no VPC endpoints
-* no security groups or custom network ACLs
+* no application or load-balancer security groups
+* no database ingress rule
+* no custom network ACLs
 * no IPv6 configuration
-* no load balancer, compute, or database resources
+* no load balancer or compute resources
+* no Multi-AZ database deployment
+* no automated database backups or final snapshots
 * no automated image-publishing workflow
 * no state-bucket provisioning
 * no active remote-state configuration
@@ -321,4 +415,5 @@ The current Terraform configuration intentionally contains:
 * no environment-specific directories
 * no deployment workflow
 
-Additional infrastructure and remote-state activation will be introduced through separate follow-up changes.
+Application access to PostgreSQL, ECS compute, load balancing, and final cloud deployment documentation will be
+introduced through separate follow-up changes.
