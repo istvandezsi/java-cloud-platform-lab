@@ -44,3 +44,36 @@ variable "vpc_cidr" {
     error_message = "vpc_cidr must be a valid IPv4 CIDR block with enough address space for the derived subnets."
   }
 }
+
+variable "database_name" {
+  description = "Name of the PostgreSQL application database."
+  type        = string
+  nullable    = false
+
+  validation {
+    condition     = length(trimspace(var.database_name)) > 0
+    error_message = "database_name must not be blank."
+  }
+}
+
+variable "database_master_username" {
+  description = "Master username for the PostgreSQL database."
+  type        = string
+  nullable    = false
+
+  validation {
+    condition     = length(trimspace(var.database_master_username)) > 0
+    error_message = "database_master_username must not be blank."
+  }
+}
+
+variable "database_instance_class" {
+  description = "Instance class used by the PostgreSQL database."
+  type        = string
+  nullable    = false
+
+  validation {
+    condition     = length(trimspace(var.database_instance_class)) > 0
+    error_message = "database_instance_class must not be blank."
+  }
+}
