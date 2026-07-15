@@ -26,26 +26,26 @@ resource "aws_db_instance" "database" {
   identifier = "${local.name_prefix}-database"
 
   engine         = "postgres"
-  engine_version = "17"
   instance_class = var.database_instance_class
+
+  db_name  = var.database_name
+  username = var.database_master_username
+  port     = 5432
+
+  manage_master_user_password = true
 
   allocated_storage = 20
   storage_type      = "gp3"
   storage_encrypted = true
 
-  db_name                     = var.database_name
-  username                    = var.database_master_username
-  manage_master_user_password = true
-  port                        = 5432
+  multi_az            = false
+  publicly_accessible = false
 
   db_subnet_group_name   = aws_db_subnet_group.database.name
   vpc_security_group_ids = [aws_security_group.database.id]
-  publicly_accessible    = false
-  multi_az               = false
 
-  backup_retention_period = 0
-  deletion_protection     = false
-  skip_final_snapshot     = true
+  deletion_protection = false
+  skip_final_snapshot = true
 
   tags = {
     Name = "${local.name_prefix}-database"
