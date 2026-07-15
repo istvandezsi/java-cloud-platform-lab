@@ -207,7 +207,7 @@ The root module defines one private Amazon RDS PostgreSQL instance for the appli
 
 The database configuration includes:
 
-* PostgreSQL 17
+* PostgreSQL with no explicitly pinned engine version
 * a development-oriented instance class supplied through `database_instance_class`
 * 20 GiB of General Purpose SSD storage using `gp3`
 * encrypted storage
@@ -262,7 +262,7 @@ No public, internet-wide, or VPC-wide database ingress rule is defined.
 
 The database is configured for straightforward lab teardown:
 
-* `backup_retention_period` is `0`
+* automated backup retention is disabled
 * `deletion_protection` is disabled
 * `skip_final_snapshot` is enabled
 
