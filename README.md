@@ -1,378 +1,310 @@
 # Java Cloud Platform Lab
 
-A small learning and reference project exploring how a Java application can be packaged, deployed, and operated using
-modern cloud/platform engineering practices.
+Java Cloud Platform Lab is a portfolio and learning project that demonstrates how a small Spring Boot application can be
+developed, persisted, observed, containerized, validated, and prepared for deployment across local, Kubernetes, and AWS
+environments.
 
-The goal is to connect my professional background in Java and enterprise software with my current focus on Kubernetes,
-Terraform, AWS, CI/CD, observability, and infrastructure automation.
+The project connects a Java application with practical platform-engineering concerns including PostgreSQL, Docker,
+Kubernetes, Terraform, AWS, CI, health checks, metrics, logging, and infrastructure security boundaries.
 
-This is not intended to represent a production-ready platform. Instead, it is an incremental lab for documenting design
-decisions, trade-offs, and practical implementation steps.
+It is intentionally bounded and development-oriented rather than production-ready.
 
-## Documentation
+## Project status
 
-* [Operations notes](docs/operations.md) — health checks, logs, troubleshooting commands, Kubernetes probes, resource
-  settings, and current operational scope.
-* [Monitoring notes](docs/monitoring.md) — local Prometheus setup, Grafana provisioning, dashboard notes, and alert rule
-  verification.
-* [Architecture overview](docs/architecture.md) — high-level system overview, diagrams, and CI validation flow.
+The repository currently includes:
 
-## Project scope
+- a working PostgreSQL-backed Spring Boot application;
+- automated application and database integration tests;
+- a complete local Docker Compose environment;
+- Kubernetes deployment manifests;
+- Prometheus and Grafana configuration;
+- GitHub Actions validation;
+- Terraform-managed AWS infrastructure definitions.
 
-Current scope:
+The AWS Terraform configuration has been:
 
-* Simple Java/Spring Boot application
-* PostgreSQL-backed task API with validation and consistent JSON error responses
-* Database schema migration with Flyway
-* Simple browser-based task board UI
-* Docker image
-* Local Docker Compose runtime with PostgreSQL, Prometheus, and Grafana
-* Kubernetes deployment manifests with external datasource configuration
-* CI validation for application and platform configuration
-* Basic observability with Actuator, Micrometer, Prometheus, Grafana, and alert rules
-* OpenAPI documentation with Swagger UI
-* Documentation of design decisions, trade-offs, and limitations
+- formatted;
+- initialized without activating the remote backend;
+- validated;
+- evaluated through an AWS-backed speculative plan.
 
-Planned future scope:
+**No AWS infrastructure has been applied yet.**
 
-* Terraform-managed AWS infrastructure
-* AWS deployment experiments
-* Kubernetes monitoring improvements
+A future, separately scheduled verification exercise will deploy the environment temporarily, verify the running
+application, and then remove the resources.
 
-## Run locally
+## Application capabilities
 
-This project requires Java 21.
+The application provides:
 
-Run the tests:
+- a browser-based task board;
+- a REST API for creating, reading, updating, completing, and deleting tasks;
+- PostgreSQL persistence through Spring JDBC;
+- Flyway database migrations;
+- request validation and consistent JSON error responses;
+- OpenAPI documentation and Swagger UI;
+- health, readiness, and liveness endpoints;
+- Prometheus-format runtime and application metrics.
+
+## Technology stack
+
+### Application
+
+- Java 21
+- Spring Boot 4.1
+- Spring MVC
+- Spring Validation
+- Spring JDBC
+- PostgreSQL
+- Flyway
+- Spring Boot Actuator
+- Micrometer
+- springdoc OpenAPI
+
+### Testing
+
+- JUnit
+- Spring Boot Test
+- H2
+- Testcontainers PostgreSQL
+
+### Platform
+
+- Docker
+- Docker Compose
+- Kubernetes
+- Prometheus
+- Grafana
+- GitHub Actions
+- Terraform
+- AWS
+
+### AWS design
+
+- Amazon VPC
+- Application Load Balancer
+- Amazon ECS Fargate
+- Amazon ECR
+- Amazon RDS for PostgreSQL
+- AWS Secrets Manager
+- AWS Identity and Access Management
+- Amazon CloudWatch Logs
+
+## Architecture overview
+
+```mermaid
+flowchart LR
+    User[User or API client]
+    Application[Spring Boot application]
+    Database[(PostgreSQL)]
+    Metrics[Prometheus]
+    Dashboard[Grafana]
+
+    User --> Application
+    Application --> Database
+    Metrics -->|scrapes| Application
+    Dashboard -->|queries| Metrics
+```
+
+The same Spring Boot application is prepared for several execution targets:
+
+| Target | Runtime | Database | Access |
+|---|---|---|---|
+| Direct local execution | Local JVM | Configured PostgreSQL | `localhost:8080` |
+| Docker Compose | Application container | PostgreSQL container | `localhost:8080` |
+| Kubernetes | Deployment and ClusterIP Service | External PostgreSQL | Cluster networking or port forwarding |
+| AWS | ECS Fargate behind an Application Load Balancer | Private RDS PostgreSQL | Public HTTP load-balancer endpoint |
+
+The AWS request path is:
+
+```text
+Internet
+  -> Application Load Balancer: TCP 80
+  -> ECS application: TCP 8080
+  -> RDS PostgreSQL: TCP 5432
+```
+
+Detailed component relationships and trust boundaries are documented in
+[Architecture](docs/architecture.md).
+
+## Quick start
+
+### Prerequisites
+
+The preferred local workflow requires:
+
+- Java 21
+- Docker
+- Docker Compose
+- a Bash-compatible shell
+
+### Run tests
 
 ```bash
 ./mvnw test
 ```
 
-The application expects a PostgreSQL database when running outside the test profile. For a complete local runtime,
-prefer Docker Compose.
+Docker must be available because the test suite includes a PostgreSQL Testcontainers integration test.
 
-To run the application directly with Maven, start PostgreSQL first:
-
-```bash
-docker compose up -d db
-```
-
-Then start the application:
-
-```bash
-./mvnw spring-boot:run
-```
-
-Then verify the application using the commands in [Verify the application](#verify-the-application).
-
-Stop the application with `Ctrl+C`.
-
-Stop the local PostgreSQL service when you no longer need it:
-
-```bash
-docker compose down
-```
-
-## Run with Docker
-
-Build the Docker image:
-
-```bash
-docker build -t java-cloud-platform-lab .
-```
-
-Run the container only when a PostgreSQL database is available through datasource environment variables:
-
-```bash
-docker run --rm -p 8080:8080 \
-  -e SPRING_DATASOURCE_URL=jdbc:postgresql://host.docker.internal:5432/cloudlab \
-  -e SPRING_DATASOURCE_USERNAME=cloudlab \
-  -e SPRING_DATASOURCE_PASSWORD=cloudlab \
-  --name java-cloud-platform-lab \
-  java-cloud-platform-lab
-```
-
-For a complete local runtime, prefer Docker Compose.
-
-Stop the container with `Ctrl+C`.
-
-## Run with Docker Compose
-
-Use Docker Compose to run the application together with PostgreSQL and the local monitoring stack:
+### Start the complete local environment
 
 ```bash
 docker compose up --build
 ```
 
-The application is available at:
+The main local endpoints are:
 
-```text
-http://localhost:8080
-```
+| Component | Address |
+|---|---|
+| Application and task board | `http://localhost:8080` |
+| Swagger UI | `http://localhost:8080/swagger-ui.html` |
+| OpenAPI JSON | `http://localhost:8080/v3/api-docs` |
+| Prometheus | `http://localhost:9090` |
+| Grafana | `http://localhost:3000` |
 
-PostgreSQL is available locally at:
-
-```text
-localhost:5432
-```
-
-The default local database settings are:
-
-```text
-database: cloudlab
-username: cloudlab
-password: cloudlab
-```
-
-Prometheus is available at:
-
-```text
-http://localhost:9090
-```
-
-Grafana is available at:
-
-```text
-http://localhost:3000
-```
-
-The default local Grafana login is:
+Local Grafana credentials:
 
 ```text
 admin / admin
 ```
 
-Task data is stored in the Docker Compose PostgreSQL volume and survives application container restarts.
+### Verify the application
 
-Stop the stack:
+```bash
+curl http://localhost:8080/api/hello
+curl http://localhost:8080/api/tasks
+curl http://localhost:8080/actuator/health
+curl http://localhost:8080/actuator/health/readiness
+curl http://localhost:8080/actuator/health/liveness
+```
+
+### Stop the local environment
+
+Preserve PostgreSQL data:
 
 ```bash
 docker compose down
 ```
 
-Remove the stack and delete the PostgreSQL data volume:
+Delete the local PostgreSQL volume and task data:
 
 ```bash
 docker compose down -v
 ```
 
-Use `docker compose down -v` only when you intentionally want to remove the local database data.
+The second command is destructive.
 
-## Run with Kubernetes
+Detailed run, validation, troubleshooting, Kubernetes, and AWS procedures are maintained in
+[Operations](docs/operations.md).
 
-This project includes Kubernetes manifests for the application deployment and service.
+## Observability
 
-The Kubernetes manifests configure the application to connect to an externally provided PostgreSQL database. PostgreSQL
-itself is not deployed by this project. The external database must be available and reachable from the Kubernetes cluster
-before the application pod can start successfully.
-
-Before applying the manifests, review and adjust:
-
-* `k8s/configmap.yaml` — datasource URL
-* `k8s/secret.yaml` — datasource username and password
-
-Build the Docker image first:
-
-```bash
-docker build -t java-cloud-platform-lab .
-```
-
-Apply the Kubernetes manifests:
-
-```bash
-kubectl apply -f k8s/
-```
-
-Check that the pod is running:
-
-```bash
-kubectl get pods
-```
-
-Forward the service port to your local machine:
-
-```bash
-kubectl port-forward service/java-cloud-platform-lab 8080:8080
-```
-
-Then verify the application using the commands in [Verify the application](#verify-the-application).
-
-Stop port forwarding with `Ctrl+C`.
-
-Remove the Kubernetes resources:
-
-```bash
-kubectl delete -f k8s/
-```
-
-## Verify the application
-
-Verify the hello endpoint:
-
-```bash
-curl http://localhost:8080/api/hello
-```
-
-Expected response:
-
-```json
-{
-  "message": "Hello from Java Cloud Platform Lab"
-}
-```
-
-Verify the health endpoint:
-
-```bash
-curl http://localhost:8080/actuator/health
-```
-
-Expected response:
-
-```json
-{
-  "status": "UP"
-}
-```
-
-## API documentation
-
-When the application is running, Swagger UI is available at:
+The application exposes metrics through:
 
 ```text
-http://localhost:8080/swagger-ui.html
+/actuator/prometheus
 ```
 
-The OpenAPI JSON document is available at:
+The local Docker Compose environment includes:
 
-```text
-http://localhost:8080/v3/api-docs
-```
+- Prometheus scraping the application;
+- a provisioned Grafana data source;
+- a provisioned Grafana dashboard;
+- a Prometheus application-availability alert rule;
+- application-specific task API metrics.
 
-The OpenAPI documentation describes the task API endpoints, request bodies, response bodies, validation errors, and
-not-found errors.
+Prometheus queries, custom metrics, alert verification, and dashboard details are documented in
+[Monitoring](docs/monitoring.md).
 
-## Browser UI
+## Kubernetes
 
-When the application is running, open:
+The Kubernetes configuration defines:
 
-```text
-http://localhost:8080/
-```
+- one application Deployment;
+- one ClusterIP Service;
+- datasource configuration through a ConfigMap and Secret;
+- separate readiness and liveness probes;
+- CPU and memory requests and limits.
 
-The browser UI provides a small task board backed by the Spring Boot task API.
+PostgreSQL is not deployed by the Kubernetes manifests. A reachable external database must be configured before the
+application can start successfully.
 
-From the browser, you can:
+Operational commands are documented in [Operations](docs/operations.md).
 
-* create tasks
-* list existing tasks
-* update task titles
-* mark tasks completed
-* delete tasks
+## Terraform and AWS
 
-When running with Docker Compose, tasks are stored in PostgreSQL and survive application container restarts.
+The Terraform root module defines:
 
-## Task API
+- VPC networking across two Availability Zones;
+- public and private subnets;
+- an internet-facing Application Load Balancer;
+- an ECS Fargate application service;
+- a private ECR repository;
+- a private RDS PostgreSQL database;
+- RDS-managed credentials in Secrets Manager;
+- an ECS task execution role;
+- CloudWatch application logging;
+- security-group boundaries between the load balancer, application, and database.
 
-The application includes a small task API backed by PostgreSQL.
+The ECS tasks currently retain public IPv4 addresses for outbound AWS service access because the environment does not
+include a NAT gateway or VPC endpoints.
 
-Task titles are validated by the API. A task title must not be missing or blank. Validation failures return a JSON error
-response.
+Direct application access through those task addresses remains blocked. Application traffic is accepted only from the
+load-balancer security group.
 
-List tasks:
+Terraform resource settings, variables, outputs, backend behavior, image publishing, bootstrap procedures, and AWS
+limitations are documented in [Terraform](terraform/README.md).
 
-```bash
-curl http://localhost:8080/api/tasks
-```
+## CI validation
 
-Create a task:
+GitHub Actions validates:
 
-```bash
-curl -X POST http://localhost:8080/api/tasks \
-  -H "Content-Type: application/json" \
-  -d '{"title":"Try the task API"}'
-```
+- Maven tests;
+- PostgreSQL integration through Testcontainers;
+- Docker image construction;
+- Docker Compose configuration;
+- Kubernetes manifest schemas;
+- Prometheus configuration;
+- Prometheus alert rules;
+- Terraform formatting;
+- Terraform initialization without the remote backend;
+- Terraform configuration validity.
 
-Expected response:
+CI does not:
 
-```json
-{
-  "id": 1,
-  "title": "Try the task API",
-  "completed": false
-}
-```
+- authenticate to AWS;
+- publish images to ECR;
+- apply infrastructure;
+- deploy the application.
 
-Create a task with an invalid title:
+## Current limitations
 
-```bash
-curl -i -X POST http://localhost:8080/api/tasks \
-  -H "Content-Type: application/json" \
-  -d '{"title":"   "}'
-```
+The project intentionally does not provide:
 
-Expected response:
+- HTTPS or a custom domain;
+- AWS WAF or load-balancer authentication;
+- ECS autoscaling or multiple desired tasks;
+- private ECS subnets with NAT or VPC endpoints;
+- Multi-AZ RDS;
+- retained database backups or final snapshots;
+- automated image publishing;
+- automated deployment;
+- a repository-managed remote Terraform state bucket;
+- Kubernetes Ingress;
+- Kubernetes-hosted PostgreSQL, Prometheus, or Grafana;
+- production capacity planning or load testing.
 
-```json
-{
-  "message": "Task title must not be blank"
-}
-```
+These boundaries keep the repository finite, inspectable, and suitable as a focused platform-engineering portfolio
+project.
 
-Get a task by id:
+## Documentation
 
-```bash
-curl http://localhost:8080/api/tasks/1
-```
-
-Update a task title:
-
-```bash
-curl -X PATCH http://localhost:8080/api/tasks/1 \
-  -H "Content-Type: application/json" \
-  -d '{"title":"Updated task title"}'
-```
-
-Update a task with an invalid title:
-
-```bash
-curl -i -X PATCH http://localhost:8080/api/tasks/1 \
-  -H "Content-Type: application/json" \
-  -d '{"title":"   "}'
-```
-
-Expected response:
-
-```json
-{
-  "message": "Task title must not be blank"
-}
-```
-
-Mark a task completed:
-
-```bash
-curl -X PATCH http://localhost:8080/api/tasks/1/complete
-```
-
-Expected response:
-
-```json
-{
-  "id": 1,
-  "title": "Updated task title",
-  "completed": true
-}
-```
-
-Delete a task:
-
-```bash
-curl -X DELETE http://localhost:8080/api/tasks/1
-```
-
-When running with Docker Compose, task data is persisted in the PostgreSQL volume.
+| Document | Purpose |
+|---|---|
+| [Architecture](docs/architecture.md) | Component relationships, runtime topologies, trust boundaries, and design decisions |
+| [Operations](docs/operations.md) | Running, validating, troubleshooting, and cleaning up environments |
+| [Monitoring](docs/monitoring.md) | Metrics, Prometheus, alert rules, and Grafana |
+| [Terraform](terraform/README.md) | AWS resources, variables, outputs, backend, image publishing, and infrastructure limitations |
 
 ## License
 

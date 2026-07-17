@@ -1,429 +1,353 @@
-# Operations Notes
+# Operations
 
-This document describes the basic operational behavior of the Java Cloud Platform Lab application.
+This document is the practical runbook for running, validating, troubleshooting, and cleaning up Java Cloud Platform Lab.
 
-The project is intentionally small and focused on local learning. Each operational capability is added incrementally so
-that the design decisions remain easy to understand.
+It intentionally avoids repeating:
 
-## Health endpoint
+- architecture and design rationale from [Architecture](architecture.md);
+- Prometheus queries and Grafana details from [Monitoring](monitoring.md);
+- Terraform resource descriptions, variables, backend design, and limitations from the
+  [Terraform documentation](../terraform/README.md).
 
-The application exposes a Spring Boot Actuator health endpoint:
+## Safety conventions
+
+Commands are marked where additional care is required:
+
+- **AWS credentials required** — contacts an AWS account.
+- **May incur AWS costs** — operates on deployed cloud resources.
+- **Destructive** — deletes data or resources.
+- **Validation only** — checks configuration without deploying anything.
+
+No AWS infrastructure has been applied yet. Terraform validation and speculative planning do not create resources.
+
+## Prerequisites
+
+The complete toolset consists of:
+
+- Git
+- Java 21
+- Docker with Docker Compose
+- Terraform 1.15 or a compatible 1.x release
+- AWS CLI for AWS-specific operations
+- `kubectl` for Kubernetes operations
+- a Bash-compatible shell
+
+Verify the main tools:
 
 ```bash
-curl http://localhost:8080/actuator/health
+git --version
+java -version
+docker version
+docker compose version
+terraform version
+aws --version
+kubectl version --client
 ```
 
-Expected response:
+The repository includes the Maven wrapper, so a separate Maven installation is not required.
 
-```json
-{
-  "status": "UP"
-}
-```
+## Repository setup
 
-This endpoint is useful for checking whether the application is running and able to respond to HTTP requests.
-
-The application also depends on a configured PostgreSQL database. When the database is unavailable, application startup
-or readiness may fail depending on when the connection is needed.
-
-## Metrics endpoint
-
-The application exposes a Prometheus metrics endpoint through Spring Boot Actuator:
+Clone and enter the repository:
 
 ```bash
-curl http://localhost:8080/actuator/prometheus
+git clone https://github.com/istvandezsi/java-cloud-platform-lab.git
+cd java-cloud-platform-lab
 ```
 
-This endpoint returns metrics in Prometheus text format.
+Before starting issue work:
 
-Example metric groups include:
+```bash
+git switch main
+git pull --ff-only
+git switch -c <issue-branch>
+```
 
-* Application startup and readiness timing
-* HTTP server request metrics
-* JDBC connection pool metrics
-* JVM information
-* JVM memory and buffer metrics
-* Disk space metrics
-* Executor/thread pool metrics
+Check the working tree:
 
-The Docker Compose setup runs Prometheus and Grafana locally. Prometheus scrapes the application metrics endpoint, and
-Grafana displays a provisioned dashboard.
+```bash
+git status
+```
 
-## Database and migrations
+## Run tests
 
-The task API stores task data in PostgreSQL.
+Docker must be available because the test suite includes a PostgreSQL Testcontainers integration test.
 
-The application uses Flyway to apply database schema migrations on startup. Migration files are stored in:
+```bash
+./mvnw test
+```
+
+A successful run ends with:
 
 ```text
-src/main/resources/db/migration
+BUILD SUCCESS
 ```
 
-The current schema contains a `tasks` table for task title and completion state.
+## Run the local Docker Compose environment
 
-When running with Docker Compose, PostgreSQL data is stored in a named Docker volume. This means task data survives
-application container restarts.
+Docker Compose is the preferred complete local runtime.
 
-Stop the Docker Compose stack without deleting database data:
-
-```bash
-docker compose down
-```
-
-Stop the stack and delete the PostgreSQL data volume:
-
-```bash
-docker compose down -v
-```
-
-Use `docker compose down -v` only when you intentionally want to remove local database data.
-
-## Docker Compose operations
-
-Start the full local stack:
+Start the application, PostgreSQL, Prometheus, and Grafana:
 
 ```bash
 docker compose up --build
 ```
 
-The stack includes:
-
-* Spring Boot application
-* PostgreSQL
-* Prometheus
-* Grafana
-
-The application is available at:
-
-```text
-http://localhost:8080
-```
-
-Prometheus is available at:
-
-```text
-http://localhost:9090
-```
-
-Grafana is available at:
-
-```text
-http://localhost:3000
-```
-
-The default local Grafana login is:
-
-```text
-admin / admin
-```
-
-View logs for the application:
+Run the stack in the background:
 
 ```bash
-docker compose logs app
+docker compose up -d --build
 ```
 
-View logs for PostgreSQL:
-
-```bash
-docker compose logs db
-```
-
-View logs for Prometheus:
-
-```bash
-docker compose logs prometheus
-```
-
-View logs for Grafana:
-
-```bash
-docker compose logs grafana
-```
-
-Restart only the application container:
-
-```bash
-docker compose restart app
-```
-
-This is useful for verifying that task data survives application restarts.
-
-Check the generated Docker Compose configuration:
-
-```bash
-docker compose config
-```
-
-## Kubernetes health checks
-
-The Kubernetes Deployment uses separate Spring Boot Actuator health groups for readiness and liveness checks.
-
-Readiness probe:
-
-* Tells Kubernetes whether the application is ready to receive traffic
-* Uses `/actuator/health/readiness`
-* Starts checking after a short initial delay
-* Allows Kubernetes to stop routing traffic to the pod while it is not ready
-
-Liveness probe:
-
-* Tells Kubernetes whether the application process should be considered alive
-* Uses `/actuator/health/liveness`
-* Starts checking after a longer initial delay
-* Allows Kubernetes to restart the container if the probe fails repeatedly
-
-Readiness and liveness are intentionally separate. Readiness is about whether the pod should receive traffic. Liveness is
-about whether the process should be restarted.
-
-The liveness probe should not depend on external systems such as PostgreSQL. If a shared external dependency is down,
-restarting every application pod can make the outage worse. Dependency readiness should be handled carefully and
-separately from process liveness.
-
-The current Kubernetes manifests do not deploy PostgreSQL. A database must be provided separately through the application
-datasource configuration. The datasource URL is configured through a ConfigMap, while the datasource username and
-password are configured through a Secret.
-
-### Local Kubernetes testing with Docker Desktop
-
-For local testing with Docker Desktop Kubernetes and the Docker Compose PostgreSQL service, start PostgreSQL first:
-
-```bash
-docker compose up -d db
-```
-
-Then temporarily update the datasource URL in:
-
-```text
-k8s/configmap.yaml
-```
-
-Set `SPRING_DATASOURCE_URL` to:
-
-```text
-jdbc:postgresql://host.docker.internal:5432/cloudlab
-```
-
-Example local-only ConfigMap value:
-
-```yaml
-data:
-  SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/cloudlab
-```
-
-This lets the application pod connect to PostgreSQL through the host machine. This is a local development convenience,
-not a general Kubernetes default.
-
-The datasource username and password are configured in:
-
-```text
-k8s/secret.yaml
-```
-
-For local Docker Compose PostgreSQL, the default values are:
-
-```text
-username: cloudlab
-password: cloudlab
-```
-
-Build the application image before applying the Kubernetes manifests:
-
-```bash
-docker build -t java-cloud-platform-lab:latest .
-```
-
-This is especially important after changing application code or configuration, because the Kubernetes Deployment uses
-the local `java-cloud-platform-lab:latest` image.
-
-The Deployment is configured with:
-
-```yaml
-image: java-cloud-platform-lab:latest
-imagePullPolicy: IfNotPresent
-```
-
-With Docker Desktop Kubernetes, this allows the cluster to use the locally built image.
-
-Apply the Kubernetes manifests:
-
-```bash
-kubectl apply -f k8s/
-```
-
-Wait for the Deployment rollout:
-
-```bash
-kubectl rollout status deployment/java-cloud-platform-lab
-```
-
-Forward the service port to your local machine:
-
-```bash
-kubectl port-forward service/java-cloud-platform-lab 8081:8080
-```
-
-Verify the application through the forwarded port:
-
-```bash
-curl http://localhost:8081/actuator/health/readiness
-curl http://localhost:8081/actuator/health/liveness
-curl http://localhost:8081/api/tasks
-```
-
-Before committing, revert `k8s/configmap.yaml` back to the generic external PostgreSQL example:
-
-```text
-jdbc:postgresql://postgres.example.local:5432/cloudlab
-```
-
-For a real Kubernetes cluster, use a PostgreSQL hostname that is reachable from that cluster, such as a managed database
-endpoint or an internal service DNS name.
-
-## Kubernetes resource requests and limits
-
-The Kubernetes Deployment defines basic CPU and memory requests and limits for the application container.
-
-Requests describe the amount of CPU and memory Kubernetes should reserve when scheduling the pod:
-
-```yaml
-requests:
-  cpu: "100m"
-  memory: "256Mi"
-```
-
-Limits describe the maximum CPU and memory the container is allowed to use:
-
-```yaml
-limits:
-  cpu: "500m"
-  memory: "512Mi"
-```
-
-For this project, these values are simple local-development defaults. They are not based on production load testing or
-capacity planning.
-
-Adding requests and limits makes the Kubernetes configuration more explicit and avoids running the pod as a best-effort
-workload.
-
-## Logs
-
-### Local Java run
-
-When running the application locally:
-
-```bash
-./mvnw spring-boot:run
-```
-
-Logs are printed directly to the terminal.
-
-The application expects a PostgreSQL database to be available through the configured datasource settings.
-
-### Docker Compose
-
-When running the local stack with Docker Compose, logs can be viewed per service:
-
-```bash
-docker compose logs app
-docker compose logs db
-docker compose logs prometheus
-docker compose logs grafana
-```
-
-### Docker
-
-When running only the application container:
-
-```bash
-docker run --rm -p 8080:8080 --name java-cloud-platform-lab java-cloud-platform-lab
-```
-
-Logs are printed directly to the terminal.
-
-The standalone application container expects PostgreSQL to be available through datasource environment variables. For
-the complete local runtime, prefer Docker Compose.
-
-If the container is running in the background, logs can be viewed with:
-
-```bash
-docker logs java-cloud-platform-lab
-```
-
-### Kubernetes
-
-When running the application in Kubernetes, first find the pod:
-
-```bash
-kubectl get pods
-```
-
-Then view logs:
-
-```bash
-kubectl logs <pod-name>
-```
-
-Example:
-
-```bash
-kubectl logs java-cloud-platform-lab-xxxxx
-```
-
-## Basic troubleshooting
-
-Check whether the application responds:
-
-```bash
-curl http://localhost:8080/api/hello
-curl http://localhost:8080/actuator/health
-curl http://localhost:8080/actuator/health/readiness
-curl http://localhost:8080/actuator/health/liveness
-```
-
-Check whether the task API responds:
-
-```bash
-curl http://localhost:8080/api/tasks
-```
-
-Check Docker Compose service status:
+Check service status:
 
 ```bash
 docker compose ps
 ```
 
-Check application logs:
+Local endpoints:
 
-```bash
-docker compose logs app
+| Component | Address |
+|---|---|
+| Application and task board | `http://localhost:8080` |
+| Swagger UI | `http://localhost:8080/swagger-ui.html` |
+| OpenAPI JSON | `http://localhost:8080/v3/api-docs` |
+| Prometheus | `http://localhost:9090` |
+| Grafana | `http://localhost:3000` |
+| PostgreSQL | `localhost:5432` |
+
+Local development credentials:
+
+```text
+PostgreSQL database: cloudlab
+PostgreSQL username: cloudlab
+PostgreSQL password: cloudlab
+
+Grafana username: admin
+Grafana password: admin
 ```
 
-Check PostgreSQL logs:
+These credentials are local development defaults only.
+
+## Verify the application
+
+Verify the hello endpoint:
 
 ```bash
-docker compose logs db
+curl http://localhost:8080/api/hello
 ```
 
-Check Prometheus logs:
+Verify general health:
 
 ```bash
-docker compose logs prometheus
+curl http://localhost:8080/actuator/health
 ```
 
-Check Grafana logs:
+Verify readiness:
 
 ```bash
-docker compose logs grafana
+curl http://localhost:8080/actuator/health/readiness
 ```
 
-Restart only the application container:
+Verify liveness:
 
 ```bash
+curl http://localhost:8080/actuator/health/liveness
+```
+
+Verify the task API:
+
+```bash
+curl http://localhost:8080/api/tasks
+```
+
+Create a task:
+
+```bash
+curl -X POST http://localhost:8080/api/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Verify the task API"}'
+```
+
+The complete API contract is available through Swagger UI rather than duplicated in this runbook.
+
+## Verify PostgreSQL persistence
+
+Create a task, restart only the application container, and then list tasks again:
+
+```bash
+curl -X POST http://localhost:8080/api/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Persistence check"}'
+
 docker compose restart app
 ```
 
-Check whether Kubernetes resources exist:
+Wait until the application becomes ready:
+
+```bash
+until curl -fsS http://localhost:8080/actuator/health/readiness > /dev/null; do
+  sleep 2
+done
+```
+
+List tasks:
+
+```bash
+curl http://localhost:8080/api/tasks
+```
+
+The task should remain because PostgreSQL data is stored in the named Docker volume.
+
+## Docker Compose logs and cleanup
+
+Follow application logs:
+
+```bash
+docker compose logs --follow app
+```
+
+View service-specific logs:
+
+```bash
+docker compose logs app
+docker compose logs db
+docker compose logs prometheus
+docker compose logs grafana
+```
+
+Validate the Compose configuration:
+
+```bash
+docker compose config
+```
+
+Stop the stack while preserving PostgreSQL data:
+
+```bash
+docker compose down
+```
+
+### Delete local database data
+
+**Destructive**
+
+```bash
+docker compose down -v
+```
+
+This removes the PostgreSQL volume and all locally stored tasks.
+
+## Monitoring
+
+Verify that the application exposes Prometheus metrics:
+
+```bash
+curl http://localhost:8080/actuator/prometheus
+```
+
+Use the dedicated [Monitoring documentation](monitoring.md) for:
+
+- application-specific metric names;
+- Prometheus queries;
+- scrape verification;
+- alert-rule verification;
+- Grafana dashboard contents.
+
+## Validate Prometheus configuration
+
+**Validation only**
+
+Run the same checks used by CI.
+
+Validate the Prometheus configuration:
+
+```bash
+docker run --rm \
+  --entrypoint promtool \
+  -v "$PWD/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro" \
+  -v "$PWD/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro" \
+  prom/prometheus:latest \
+  check config /etc/prometheus/prometheus.yml
+```
+
+Validate alert rules:
+
+```bash
+docker run --rm \
+  --entrypoint promtool \
+  -v "$PWD/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro" \
+  prom/prometheus:latest \
+  check rules /etc/prometheus/alerts.yml
+```
+
+## Validate Kubernetes manifests
+
+**Validation only**
+
+This command validates the files under `k8s/` without connecting to or modifying a Kubernetes cluster:
+
+```bash
+docker run --rm \
+  -v "$PWD:/workspace" \
+  ghcr.io/yannh/kubeconform:latest \
+  -strict \
+  -summary \
+  /workspace/k8s
+```
+
+It checks Kubernetes schemas, field names, structure, and value types.
+
+It does not verify runtime networking, database availability, or credentials.
+
+## Run the application with Kubernetes
+
+The Kubernetes manifests deploy only the application. PostgreSQL must be supplied separately.
+
+Review before applying:
+
+```text
+k8s/configmap.yaml
+k8s/secret.yaml
+```
+
+For local Docker Desktop Kubernetes testing, start the Compose database:
+
+```bash
+docker compose up -d db
+```
+
+Temporarily set the ConfigMap datasource URL to:
+
+```text
+jdbc:postgresql://host.docker.internal:5432/cloudlab
+```
+
+Build the local image:
+
+```bash
+docker build -t java-cloud-platform-lab:latest .
+```
+
+Confirm the active cluster:
+
+```bash
+kubectl config current-context
+```
+
+Apply the manifests:
+
+```bash
+kubectl apply -f k8s/
+```
+
+Wait for the rollout:
+
+```bash
+kubectl rollout status deployment/java-cloud-platform-lab
+```
+
+Inspect resources:
 
 ```bash
 kubectl get deployments
@@ -431,33 +355,437 @@ kubectl get pods
 kubectl get services
 ```
 
-Check whether the datasource ConfigMap and Secret exist:
+Forward the application service:
+
+```bash
+kubectl port-forward service/java-cloud-platform-lab 8081:8080
+```
+
+Verify through the forwarded port:
+
+```bash
+curl http://localhost:8081/actuator/health/readiness
+curl http://localhost:8081/actuator/health/liveness
+curl http://localhost:8081/api/tasks
+```
+
+Stop port forwarding with `Ctrl+C`.
+
+Before committing, restore the generic ConfigMap datasource URL:
+
+```text
+jdbc:postgresql://postgres.example.local:5432/cloudlab
+```
+
+Verify that no local-only manifest change remains:
+
+```bash
+git diff -- k8s/configmap.yaml
+```
+
+### Remove Kubernetes resources
+
+**Destructive**
+
+Confirm the active context:
+
+```bash
+kubectl config current-context
+```
+
+Remove the project resources:
+
+```bash
+kubectl delete -f k8s/
+```
+
+## Kubernetes troubleshooting
+
+Check rollout and pod state:
+
+```bash
+kubectl rollout status deployment/java-cloud-platform-lab
+kubectl get pods
+```
+
+Describe a failing pod:
+
+```bash
+kubectl describe pod <pod-name>
+```
+
+Read application logs:
+
+```bash
+kubectl logs <pod-name>
+```
+
+Follow logs:
+
+```bash
+kubectl logs --follow <pod-name>
+```
+
+Check the service and its endpoints:
+
+```bash
+kubectl get service java-cloud-platform-lab
+kubectl get endpoints java-cloud-platform-lab
+```
+
+Check datasource resources without printing secret values:
 
 ```bash
 kubectl get configmap java-cloud-platform-lab-datasource-config
 kubectl get secret java-cloud-platform-lab-datasource-secret
 ```
 
-Describe the pod if it is not running correctly:
+Common failures include:
+
+- unreachable PostgreSQL;
+- invalid datasource credentials;
+- an unavailable or stale local image;
+- Flyway migration failure;
+- readiness checks failing during startup.
+
+## Validate Terraform locally
+
+The Terraform root module is documented in detail in
+[terraform/README.md](../terraform/README.md).
+
+Copy the example variables:
 
 ```bash
-kubectl describe pod <pod-name>
+cp terraform/terraform.tfvars.example terraform/terraform.tfvars
 ```
 
-Check Kubernetes application logs:
+The local file is ignored by Git and must not contain credentials or passwords.
+
+Check formatting:
 
 ```bash
-kubectl logs <pod-name>
+terraform -chdir=terraform fmt -check -recursive
 ```
 
-Forward the service port to the local machine:
+Initialize without activating the partial S3 backend:
 
 ```bash
-kubectl port-forward service/java-cloud-platform-lab 8080:8080
+terraform -chdir=terraform init \
+  -backend=false \
+  -input=false \
+  -lockfile=readonly
 ```
 
-Remove the Kubernetes resources:
+Validate:
 
 ```bash
-kubectl delete -f k8s/
+terraform -chdir=terraform validate -no-color
 ```
+
+These commands do not create AWS infrastructure.
+
+## Run an AWS-backed speculative plan
+
+**AWS credentials required**
+
+A speculative plan contacts AWS but does not create or modify resources.
+
+Select an AWS CLI profile:
+
+```bash
+export AWS_PROFILE=<aws-profile>
+```
+
+Verify the selected identity:
+
+```bash
+aws sts get-caller-identity
+```
+
+Ensure `terraform/terraform.tfvars` contains a nonblank image tag. For plan-only validation, a placeholder is sufficient:
+
+```hcl
+application_image_tag = "replace-with-published-image-tag"
+```
+
+Run:
+
+```bash
+terraform -chdir=terraform plan \
+  -input=false \
+  -lock-timeout=30s
+```
+
+Review the proposed resource changes carefully.
+
+Do not run `terraform apply` as part of routine validation or documentation review.
+
+## Publish an immutable image to ECR
+
+These commands require an existing Terraform-managed ECR repository.
+
+**AWS credentials required**
+
+**May incur AWS costs**
+
+Set the profile and region:
+
+```bash
+export AWS_PROFILE=<aws-profile>
+export AWS_REGION=eu-central-1
+```
+
+Read the repository URL:
+
+```bash
+ECR_REPOSITORY_URL=$(terraform -chdir=terraform output -raw ecr_repository_url)
+ECR_REGISTRY=${ECR_REPOSITORY_URL%%/*}
+```
+
+Authenticate Docker:
+
+```bash
+aws ecr get-login-password --region "$AWS_REGION" \
+  | docker login \
+      --username AWS \
+      --password-stdin "$ECR_REGISTRY"
+```
+
+Use the current commit as the immutable tag:
+
+```bash
+IMAGE_TAG=$(git rev-parse --short HEAD)
+```
+
+Build, tag, and push:
+
+```bash
+docker build \
+  --tag "java-cloud-platform-lab:$IMAGE_TAG" \
+  .
+
+docker tag \
+  "java-cloud-platform-lab:$IMAGE_TAG" \
+  "$ECR_REPOSITORY_URL:$IMAGE_TAG"
+
+docker push "$ECR_REPOSITORY_URL:$IMAGE_TAG"
+```
+
+Set the same tag in `terraform/terraform.tfvars`:
+
+```hcl
+application_image_tag = "<git-commit-sha>"
+```
+
+The complete first-deployment bootstrap sequence and its rationale remain authoritative in the
+[Terraform documentation](../terraform/README.md).
+
+## Inspect a deployed AWS environment
+
+These commands apply only after a future controlled deployment.
+
+**AWS credentials required**
+
+**May incur AWS costs**
+
+Retrieve the public URL:
+
+```bash
+APPLICATION_URL=$(terraform -chdir=terraform output -raw application_url)
+```
+
+Verify the application:
+
+```bash
+curl "$APPLICATION_URL/api/hello"
+curl "$APPLICATION_URL/actuator/health"
+curl "$APPLICATION_URL/actuator/health/readiness"
+curl "$APPLICATION_URL/api/tasks"
+```
+
+Retrieve ECS names:
+
+```bash
+ECS_CLUSTER_NAME=$(terraform -chdir=terraform output -raw ecs_cluster_name)
+ECS_SERVICE_NAME=$(terraform -chdir=terraform output -raw ecs_service_name)
+```
+
+Inspect the ECS service:
+
+```bash
+aws ecs describe-services \
+  --cluster "$ECS_CLUSTER_NAME" \
+  --services "$ECS_SERVICE_NAME" \
+  --query 'services[0].{desired:desiredCount,running:runningCount,pending:pendingCount,status:status}' \
+  --output table
+```
+
+## Inspect CloudWatch logs
+
+**AWS credentials required**
+
+Read the log-group name:
+
+```bash
+APPLICATION_LOG_GROUP=$(terraform -chdir=terraform output -raw application_log_group_name)
+```
+
+Show recent application logs:
+
+```bash
+aws logs tail "$APPLICATION_LOG_GROUP" --since 30m
+```
+
+Follow logs:
+
+```bash
+aws logs tail "$APPLICATION_LOG_GROUP" --follow
+```
+
+Use application logs to diagnose datasource configuration, Flyway migrations, PostgreSQL connectivity, and Spring Boot
+startup.
+
+## Redeploy after database-secret rotation
+
+ECS reads the RDS-managed secret when a task starts. Running tasks do not automatically receive rotated credentials.
+
+**AWS credentials required**
+
+**May incur AWS costs**
+
+Force a replacement deployment:
+
+```bash
+aws ecs update-service \
+  --cluster "$(terraform -chdir=terraform output -raw ecs_cluster_name)" \
+  --service "$(terraform -chdir=terraform output -raw ecs_service_name)" \
+  --force-new-deployment
+```
+
+Wait for service stability:
+
+```bash
+aws ecs wait services-stable \
+  --cluster "$(terraform -chdir=terraform output -raw ecs_cluster_name)" \
+  --services "$(terraform -chdir=terraform output -raw ecs_service_name)"
+```
+
+## AWS cleanup precautions
+
+Terraform-managed AWS resources can incur costs while they exist.
+
+The future live-verification exercise should reserve enough time to deploy, verify, troubleshoot, and remove the
+environment in one session.
+
+Before any destructive operation, confirm:
+
+```bash
+aws sts get-caller-identity
+terraform -chdir=terraform workspace show
+```
+
+Review the destruction plan:
+
+```bash
+terraform -chdir=terraform plan -destroy
+```
+
+The actual destroy command is intentionally not part of the normal validation workflow.
+
+The lab database is disposable and is configured without a final snapshot during destruction.
+
+## General troubleshooting sequence
+
+Check the repository first:
+
+```bash
+git status
+git diff --check
+```
+
+Run tests:
+
+```bash
+./mvnw test
+```
+
+Validate local configuration:
+
+```bash
+docker compose config
+terraform -chdir=terraform fmt -check -recursive
+terraform -chdir=terraform validate -no-color
+```
+
+Check local service state:
+
+```bash
+docker compose ps
+```
+
+Check application health:
+
+```bash
+curl http://localhost:8080/actuator/health
+curl http://localhost:8080/actuator/health/readiness
+curl http://localhost:8080/actuator/health/liveness
+```
+
+Inspect application and database logs:
+
+```bash
+docker compose logs app
+docker compose logs db
+```
+
+Verify PostgreSQL health:
+
+```bash
+docker compose exec db pg_isready -U cloudlab -d cloudlab
+```
+
+For AWS failures, inspect:
+
+- AWS identity and region;
+- Terraform plan output;
+- ECS service events;
+- stopped-task reasons;
+- CloudWatch application logs;
+- load-balancer target health.
+
+## Pre-commit validation
+
+Check whitespace and the working tree:
+
+```bash
+git diff --check
+git status --short
+```
+
+Run the primary repository checks:
+
+```bash
+./mvnw test
+docker build -t java-cloud-platform-lab .
+docker compose config
+terraform -chdir=terraform fmt -check -recursive
+terraform -chdir=terraform init \
+  -backend=false \
+  -input=false \
+  -lockfile=readonly
+terraform -chdir=terraform validate -no-color
+```
+
+Use the Kubernetes and Prometheus validation commands above when their related files change.
+
+No infrastructure should be applied as part of documentation validation.
+
+## Documentation ownership
+
+| Document | Responsibility |
+|---|---|
+| [Project README](../README.md) | Portfolio overview, quick start, and navigation |
+| [Architecture](architecture.md) | Runtime topologies, trust boundaries, and design decisions |
+| [Operations](operations.md) | Run, verify, troubleshoot, and cleanup procedures |
+| [Monitoring](monitoring.md) | Metrics, Prometheus, alerts, and Grafana |
+| [Terraform](../terraform/README.md) | AWS resources, variables, outputs, backend, and deployment bootstrap |
