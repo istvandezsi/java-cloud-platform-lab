@@ -107,9 +107,10 @@ resource "aws_ecs_service" "application" {
   cluster         = aws_ecs_cluster.application.id
   task_definition = aws_ecs_task_definition.application.arn
 
-  desired_count    = 1
-  launch_type      = "FARGATE"
-  platform_version = "1.4.0"
+  desired_count                     = 1
+  launch_type                       = "FARGATE"
+  platform_version                  = "1.4.0"
+  health_check_grace_period_seconds = 120
 
   network_configuration {
     subnets = [
@@ -121,11 +122,20 @@ resource "aws_ecs_service" "application" {
     assign_public_ip = true
   }
 
+  load_balancer {
+    target_group_arn = aws_lb_target_group.application.arn
+    container_name   = "application"
+    container_port   = 8080
+  }
+
   depends_on = [
     aws_iam_role_policy_attachment.ecs_task_execution,
     aws_iam_role_policy.database_secret_access,
     aws_vpc_security_group_egress_rule.application,
     aws_vpc_security_group_ingress_rule.database_from_application,
+    aws_vpc_security_group_egress_rule.load_balancer_to_application,
+    aws_vpc_security_group_ingress_rule.application_from_load_balancer,
+    aws_lb_listener.http,
     aws_route.public_internet,
     aws_route_table_association.public
   ]

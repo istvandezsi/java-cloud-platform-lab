@@ -4,8 +4,8 @@ This directory contains the Terraform root module for the Java Cloud Platform La
 
 The current configuration establishes the Terraform and AWS provider requirements, shared input variables, resource
 naming conventions, common tags, a partial Amazon S3 backend declaration, the foundational VPC network, an Amazon ECR
-repository for application images, a private Amazon RDS PostgreSQL database, and an Amazon ECS Fargate application
-service with CloudWatch logging.
+repository for application images, a private Amazon RDS PostgreSQL database, an Amazon ECS Fargate application service
+with CloudWatch logging, and an internet-facing Application Load Balancer providing public HTTP access.
 
 ## Prerequisites
 
@@ -93,6 +93,7 @@ The network contains:
 * one internet gateway
 * one public route table with a default route through the internet gateway
 * one private route table without an internet or NAT route
+* one internet-facing Application Load Balancer across both public subnets
 
 For the example VPC CIDR of `10.0.0.0/16`, Terraform derives these subnet ranges:
 
@@ -112,11 +113,12 @@ when workloads require outbound connectivity from private subnets.
 The ECS application tasks run in the public subnets and explicitly request public IPv4 addresses. This provides outbound
 connectivity for pulling the private ECR image, retrieving the RDS-managed secret, and publishing logs to CloudWatch.
 
-The public address does not make the application publicly reachable. The application security group has no inbound
-rules, and no load balancer or direct public application ingress is currently defined.
+Public application requests enter through the Application Load Balancer. The ECS task public addresses do not provide
+direct application access because the application security group accepts port `8080` only from the load-balancer
+security group.
 
-The VPC, subnets, internet gateway, route tables, and security groups inherit the provider-level common tags and receive
-descriptive `Name` tags.
+The VPC, subnets, internet gateway, route tables, load balancer, target group, and security groups inherit the
+provider-level common tags and receive descriptive `Name` tags where supported.
 
 ## Container image registry
 
@@ -259,9 +261,16 @@ The RDS DB subnet group contains both existing private subnets across two Availa
 
 ```mermaid
 flowchart LR
-    PublicSubnet1[Public subnet 1] --> Application[ECS Fargate application task]
-    PublicSubnet2[Public subnet 2] --> Application
-    ApplicationSecurityGroup[Application security group<br/>No inbound rules] -. attached to .-> Application
+    Internet[Internet] -->|TCP 80| LoadBalancer[Application Load Balancer]
+    LoadBalancerSecurityGroup[Load-balancer security group] -. attached to .-> LoadBalancer
+
+    PublicSubnet1[Public subnet 1] --> LoadBalancer
+    PublicSubnet2[Public subnet 2] --> LoadBalancer
+    PublicSubnet1 --> Application[ECS Fargate application task]
+    PublicSubnet2 --> Application
+
+    LoadBalancerSecurityGroup -->|TCP 8080| ApplicationSecurityGroup[Application security group]
+    ApplicationSecurityGroup -. attached to .-> Application
 
     PrivateSubnet1[Private subnet 1] --> SubnetGroup[RDS DB subnet group]
     PrivateSubnet2[Private subnet 2] --> SubnetGroup
@@ -316,8 +325,8 @@ database master user.
 The database security group accepts PostgreSQL connections on TCP port `5432` only from the ECS application security
 group.
 
-The application security group has no inbound rules and allows outbound traffic required for AWS service access and the
-database connection.
+The application security group allows outbound traffic required for AWS service access and the database connection. Its
+only inbound rule accepts TCP port `8080` from the load-balancer security group.
 
 No public, internet-wide, VPC-wide, or subnet-wide database ingress rule is defined.
 
@@ -346,6 +355,7 @@ The development-oriented task configuration uses:
 * one essential application container
 * container port `8080`
 * one desired running task
+* a 120-second load-balancer health-check grace period
 
 The task definition uses the Terraform-managed ECR repository and the configured immutable application image tag.
 
@@ -382,12 +392,15 @@ This is a temporary development-oriented networking choice because the private s
 gateway or VPC endpoints. Without one of those outbound paths, tasks in the private subnets could not retrieve the ECR
 image, database secret, or CloudWatch Logs service endpoints.
 
-The application security group intentionally has no inbound rules. Consequently:
+The ECS service registers the container named `application` and port `8080` with the Application Load Balancer target
+group.
 
-* the application cannot currently be reached from the internet
-* the application cannot currently be reached directly from elsewhere in the VPC
-* the task's public IPv4 address provides outbound connectivity only
-* a later load-balancer change will allow application traffic only from a dedicated load-balancer security group
+The application security group accepts port `8080` only from the load-balancer security group. Consequently:
+
+* internet clients reach the application only through the Application Load Balancer
+* the application cannot be reached directly through the task's public IPv4 address
+* arbitrary resources elsewhere in the VPC cannot connect to application port `8080`
+* the task public IPv4 address remains an outbound-connectivity mechanism
 
 ### Application logs
 
@@ -401,6 +414,84 @@ Logs are sent to a Terraform-managed CloudWatch Logs group with:
 * an `application` log-stream prefix
 
 CloudWatch alarms, dashboards, Container Insights, and AWS-hosted Prometheus or Grafana are not configured.
+
+## Application Load Balancer and public access
+
+The root module defines one internet-facing Application Load Balancer across the two public subnets.
+
+The load balancer uses:
+
+* IPv4
+* an HTTP listener on TCP port `80`
+* one HTTP target group on port `8080`
+* target type `ip`
+* the ECS Fargate task network interfaces as targets
+
+### Public request path
+
+Application traffic follows this path:
+
+```text
+Internet
+  -> Application Load Balancer: TCP 80
+  -> ECS application target: TCP 8080
+  -> RDS PostgreSQL: TCP 5432
+```
+
+The load-balancer listener forwards every HTTP request to the application target group.
+
+### Security groups
+
+The load-balancer security group:
+
+* accepts inbound TCP port `80` from `0.0.0.0/0`
+* allows outbound TCP port `8080` only to the application security group
+
+The application security group:
+
+* accepts inbound TCP port `8080` only from the load-balancer security group
+* does not accept application traffic directly from the public internet, VPC CIDR, or subnet CIDRs
+
+The database security group continues to accept TCP port `5432` only from the application security group.
+
+### Target-group health checks
+
+The target group checks:
+
+```text
+/actuator/health/readiness
+```
+
+The development-oriented health-check configuration uses:
+
+* HTTP
+* expected status code `200`
+* a 30-second interval
+* a 5-second timeout
+* two consecutive successful checks to become healthy
+* three consecutive unsuccessful checks to become unhealthy
+
+The ECS service uses a 120-second health-check grace period. During that period, ECS ignores unsuccessful
+load-balancer health checks while Spring Boot, Flyway, and the datasource initialize.
+
+The load balancer forwards user traffic only to targets that pass the readiness health check.
+
+### Obtain the public application URL
+
+After the infrastructure exists, retrieve the complete HTTP URL:
+
+```bash
+terraform -chdir=terraform output -raw application_url
+```
+
+The load-balancer DNS name is also available separately:
+
+```bash
+terraform -chdir=terraform output -raw load_balancer_dns_name
+```
+
+The current public endpoint uses HTTP only. No custom domain, TLS certificate, HTTPS listener, or HTTP-to-HTTPS redirect
+is configured.
 
 ## Outputs
 
@@ -417,6 +508,8 @@ The root module exposes:
 * `ecs_cluster_name`
 * `ecs_service_name`
 * `application_log_group_name`
+* `load_balancer_dns_name`
+* `application_url`
 
 Subnet IDs are returned in position order.
 
@@ -429,6 +522,9 @@ The database master-secret ARN identifies the RDS-managed Secrets Manager secret
 
 The ECS cluster and service outputs identify the application runtime resources. The application log-group output
 identifies the CloudWatch Logs group that receives the application container logs.
+
+The load-balancer DNS output contains the AWS-generated hostname. The application URL adds the current `http://` scheme
+to that hostname.
 
 ## Remote state
 
@@ -531,8 +627,8 @@ terraform -chdir=terraform validate -no-color
 Validation checks that the configuration is syntactically valid and internally consistent. It does not provision or
 modify infrastructure.
 
-The network, ECR, RDS, IAM, ECS, security-group, and CloudWatch Logs resources are created only when `terraform apply`
-is run with valid AWS credentials.
+The network, ECR, RDS, IAM, ECS, load-balancer, target-group, listener, security-group, and CloudWatch Logs resources
+are created only when `terraform apply` is run with valid AWS credentials.
 
 ## Current limitations
 
@@ -541,9 +637,10 @@ The current Terraform configuration intentionally contains:
 * no NAT gateway or NAT instance
 * no VPC endpoints
 * ECS tasks in public subnets with public IPv4 addresses for outbound connectivity
-* no Application Load Balancer
-* no public application ingress
-* no custom domain, TLS certificate, or HTTPS listener
+* public application access over HTTP only
+* no custom domain, TLS certificate, HTTPS listener, or HTTP-to-HTTPS redirect
+* no AWS WAF
+* no authentication at the load balancer
 * no ECS service autoscaling
 * no multiple-task deployment
 * no separate application task IAM role
@@ -565,5 +662,4 @@ The current Terraform configuration intentionally contains:
 * no modules
 * no environment-specific directories
 
-Load balancing, public application access, and final cloud deployment documentation will be introduced through separate
-follow-up changes.
+Final project-wide architecture and operations documentation will be introduced through a separate follow-up change.

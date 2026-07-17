@@ -58,3 +58,13 @@ output "application_log_group_name" {
   description = "Name of the CloudWatch Logs group containing application container logs."
   value       = aws_cloudwatch_log_group.application.name
 }
+
+output "load_balancer_dns_name" {
+  description = "Public DNS name of the Application Load Balancer."
+  value       = aws_lb.application.dns_name
+}
+
+output "application_url" {
+  description = "Public HTTP URL of the application."
+  value       = "http://${aws_lb.application.dns_name}"
+}
