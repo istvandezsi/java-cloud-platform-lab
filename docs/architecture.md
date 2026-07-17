@@ -9,7 +9,7 @@ procedures belong in [Operations](operations.md), detailed metrics and dashboard
 
 ## Project status
 
-The repository implements and validates four execution targets:
+The repository contains configuration for four execution targets:
 
 - direct local execution;
 - Docker Compose;
@@ -252,9 +252,9 @@ flowchart LR
     LoadBalancer -->|Application traffic| ECS
     ECS -->|PostgreSQL| RDS
 
-    ECR -->|Container image| ECS
-    Secret -->|Database credentials| ECS
-    ECS -->|Application logs| Logs
+    ECS -->|pulls container image| ECR
+    ECS -->|retrieves database credentials| Secret
+    ECS -->|publishes application logs| Logs
 ```
 
 The principal AWS components are:

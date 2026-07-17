@@ -662,4 +662,4 @@ The current Terraform configuration intentionally contains:
 * no modules
 * no environment-specific directories
 
-Final project-wide architecture and operations documentation will be introduced through a separate follow-up change.
+Project-wide context and operational procedures are documented in [Architecture](../docs/architecture.md) and [Operations](../docs/operations.md).
