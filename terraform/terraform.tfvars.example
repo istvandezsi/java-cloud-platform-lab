@@ -1,7 +1,10 @@
-aws_region               = "eu-central-1"
-environment              = "dev"
-project_name             = "java-cloud-platform-lab"
-vpc_cidr                 = "10.0.0.0/16"
+aws_region           = "eu-central-1"
+environment          = "dev"
+project_name         = "java-cloud-platform-lab"
+application_image_tag = "replace-with-published-image-tag"
+
+vpc_cidr = "10.0.0.0/16"
+
 database_name            = "cloudlab"
 database_master_username = "cloudlabadmin"
 database_instance_class  = "db.t4g.micro"

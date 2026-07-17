@@ -31,6 +31,17 @@ variable "project_name" {
   }
 }
 
+variable "application_image_tag" {
+  description = "Immutable tag of an application image already published to the ECR repository."
+  type        = string
+  nullable    = false
+
+  validation {
+    condition     = length(trimspace(var.application_image_tag)) > 0
+    error_message = "application_image_tag must not be blank."
+  }
+}
+
 variable "vpc_cidr" {
   description = "IPv4 CIDR block used for the VPC and derived subnets."
   type        = string
