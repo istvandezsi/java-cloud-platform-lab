@@ -490,16 +490,20 @@ These commands do not create AWS infrastructure.
 
 A speculative plan contacts AWS but does not create or modify resources.
 
-Select an AWS CLI profile:
+Set the AWS CLI profile and the same region configured by the Terraform `aws_region` variable:
 
 ```bash
 export AWS_PROFILE=<aws-profile>
+export AWS_REGION=eu-central-1
 ```
 
-Verify the selected identity:
+Replace `eu-central-1` when Terraform uses another region.
+
+Verify the selected identity and region:
 
 ```bash
 aws sts get-caller-identity
+echo "$AWS_REGION"
 ```
 
 Ensure `terraform/terraform.tfvars` contains a nonblank image tag. For plan-only validation, a placeholder is sufficient:
@@ -614,6 +618,7 @@ Inspect the ECS service:
 
 ```bash
 aws ecs describe-services \
+  --region "$AWS_REGION" \
   --cluster "$ECS_CLUSTER_NAME" \
   --services "$ECS_SERVICE_NAME" \
   --query 'services[0].{desired:desiredCount,running:runningCount,pending:pendingCount,status:status}' \
@@ -633,13 +638,17 @@ APPLICATION_LOG_GROUP=$(terraform -chdir=terraform output -raw application_log_g
 Show recent application logs:
 
 ```bash
-aws logs tail "$APPLICATION_LOG_GROUP" --since 30m
+aws logs tail "$APPLICATION_LOG_GROUP" \
+  --region "$AWS_REGION" \
+  --since 30m
 ```
 
 Follow logs:
 
 ```bash
-aws logs tail "$APPLICATION_LOG_GROUP" --follow
+aws logs tail "$APPLICATION_LOG_GROUP" \
+  --region "$AWS_REGION" \
+  --follow
 ```
 
 Use application logs to diagnose datasource configuration, Flyway migrations, PostgreSQL connectivity, and Spring Boot
@@ -657,6 +666,7 @@ Force a replacement deployment:
 
 ```bash
 aws ecs update-service \
+  --region "$AWS_REGION" \
   --cluster "$(terraform -chdir=terraform output -raw ecs_cluster_name)" \
   --service "$(terraform -chdir=terraform output -raw ecs_service_name)" \
   --force-new-deployment
@@ -666,6 +676,7 @@ Wait for service stability:
 
 ```bash
 aws ecs wait services-stable \
+  --region "$AWS_REGION" \
   --cluster "$(terraform -chdir=terraform output -raw ecs_cluster_name)" \
   --services "$(terraform -chdir=terraform output -raw ecs_service_name)"
 ```
@@ -681,6 +692,7 @@ Before any destructive operation, confirm:
 
 ```bash
 aws sts get-caller-identity
+echo "$AWS_REGION"
 terraform -chdir=terraform workspace show
 ```
 
@@ -779,13 +791,3 @@ terraform -chdir=terraform validate -no-color
 Use the Kubernetes and Prometheus validation commands above when their related files change.
 
 No infrastructure should be applied as part of documentation validation.
-
-## Documentation ownership
-
-| Document | Responsibility |
-|---|---|
-| [Project README](../README.md) | Portfolio overview, quick start, and navigation |
-| [Architecture](architecture.md) | Runtime topologies, trust boundaries, and design decisions |
-| [Operations](operations.md) | Run, verify, troubleshoot, and cleanup procedures |
-| [Monitoring](monitoring.md) | Metrics, Prometheus, alerts, and Grafana |
-| [Terraform](../terraform/README.md) | AWS resources, variables, outputs, backend, and deployment bootstrap |
