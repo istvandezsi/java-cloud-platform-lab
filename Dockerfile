@@ -13,7 +13,7 @@ FROM eclipse-temurin:21-jre
 
 WORKDIR /app
 
-COPY --from=build /workspace/target/java-cloud-platform-lab-0.0.1-SNAPSHOT.jar app.jar
+COPY --from=build /workspace/target/java-cloud-platform-lab-*.jar app.jar
 
 EXPOSE 8080
 

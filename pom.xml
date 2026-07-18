@@ -14,10 +14,10 @@
 
 	<groupId>hu.dezsi</groupId>
 	<artifactId>java-cloud-platform-lab</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0.0</version>
 
 	<name>Java Cloud Platform Lab</name>
-	<description>A small Java application for cloud and platform engineering practice.</description>
+	<description>A practical Java reference project for cloud and platform engineering.</description>
 
 	<properties>
 		<java.version>21</java.version>
