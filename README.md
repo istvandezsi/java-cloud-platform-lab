@@ -267,6 +267,7 @@ GitHub Actions validates:
 - Kubernetes manifest schemas;
 - Prometheus configuration;
 - Prometheus alert rules;
+- Markdown links and anchors;
 - Terraform formatting;
 - Terraform initialization without the remote backend;
 - Terraform configuration validity.
