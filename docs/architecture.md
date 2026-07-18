@@ -392,6 +392,8 @@ flowchart TD
     Kubernetes --> Prometheus[Prometheus configuration validation]
     Prometheus --> Rules[Prometheus rule validation]
 
+    Change --> Documentation[Markdown link validation]
+
     Change --> TerraformFormat[Terraform formatting]
     TerraformFormat --> TerraformInit[Terraform initialization without backend]
     TerraformInit --> TerraformValidate[Terraform validation]
@@ -405,6 +407,7 @@ CI verifies:
 - Docker Compose syntax;
 - Kubernetes manifest schemas;
 - Prometheus configuration and rules;
+- Markdown links and anchors;
 - Terraform formatting and internal consistency.
 
 CI does not:
