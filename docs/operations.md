@@ -18,7 +18,11 @@ Commands are marked where additional care is required:
 - **Destructive** — deletes data or resources.
 - **Validation only** — checks configuration without deploying anything.
 
-No AWS infrastructure has been applied yet. Terraform validation and speculative planning do not create resources.
+A controlled AWS live-verification exercise has been completed successfully. The environment was removed after
+verification and is not kept running.
+
+Use [AWS Live Verification](aws-live-verification.md) for the complete deploy–verify–destroy procedure. Routine
+validation in this document does not apply infrastructure.
 
 ## Prerequisites
 
@@ -685,8 +689,8 @@ aws ecs wait services-stable \
 
 Terraform-managed AWS resources can incur costs while they exist.
 
-The future live-verification exercise should reserve enough time to deploy, verify, troubleshoot, and remove the
-environment in one session.
+A live-verification exercise must reserve enough time to deploy, verify, troubleshoot, and remove the environment
+in one session. Follow the dedicated [AWS Live Verification](aws-live-verification.md) runbook.
 
 Before any destructive operation, confirm:
 

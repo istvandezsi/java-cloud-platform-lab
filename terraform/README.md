@@ -237,6 +237,10 @@ Use this bootstrap sequence:
 During the interval between the two applies, ECS task launches are expected to fail because the initially referenced
 image does not exist. This two-step process is limited to the first deployment of a new environment.
 
+For the complete tested workflow—including planning, image publication, runtime checks, persistence verification,
+drift detection, destruction, and AWS-side cleanup—see
+[AWS Live Verification](../docs/aws-live-verification.md).
+
 ## PostgreSQL database
 
 The root module defines one private Amazon RDS PostgreSQL instance for the application persistence layer.
