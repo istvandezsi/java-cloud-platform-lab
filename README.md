@@ -1,13 +1,13 @@
 # Java Cloud Platform Lab
 
-Java Cloud Platform Lab is a portfolio and learning project that demonstrates how a small Spring Boot application can be
-developed, persisted, observed, containerized, validated, and prepared for deployment across local, Kubernetes, and AWS
-environments.
+Java Cloud Platform Lab is a practical reference implementation showing how a Spring Boot application can be developed,
+persisted, observed, containerized, validated, and deployed across local, Kubernetes, and AWS environments.
 
 The project connects a Java application with practical platform-engineering concerns including PostgreSQL, Docker,
 Kubernetes, Terraform, AWS, CI, health checks, metrics, logging, and infrastructure security boundaries.
 
-It is intentionally bounded and development-oriented rather than production-ready.
+It is designed for learning, experimentation, and adaptation. The implementation remains intentionally bounded and
+development-oriented rather than production-ready.
 
 ## Project status
 
@@ -296,8 +296,8 @@ The project intentionally does not provide:
 - Kubernetes-hosted PostgreSQL, Prometheus, or Grafana;
 - production capacity planning or load testing.
 
-These boundaries keep the repository finite, inspectable, and suitable as a focused platform-engineering portfolio
-project.
+These boundaries keep the repository finite, inspectable, and useful as a practical platform-engineering reference
+implementation for learning, experimentation, and adaptation.
 
 ## Documentation
 
@@ -307,6 +307,7 @@ project.
 | [Operations](docs/operations.md) | Running, validating, troubleshooting, and cleaning up environments |
 | [Monitoring](docs/monitoring.md) | Metrics, Prometheus, alert rules, and Grafana |
 | [Terraform](terraform/README.md) | AWS resources, variables, outputs, backend, image publishing, and infrastructure limitations |
+| [Changelog](CHANGELOG.md) | Stable release history and release highlights |
 
 ## License
 
