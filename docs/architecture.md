@@ -16,9 +16,14 @@ The repository contains configuration for four execution targets:
 - Kubernetes;
 - Terraform-managed AWS infrastructure.
 
-The AWS configuration has been statically validated and evaluated through an AWS-backed speculative Terraform plan.
+The AWS configuration has been statically validated, planned against AWS, and
+verified through a controlled live deployment. The verification covered the
+application runtime, PostgreSQL persistence across task replacement, CloudWatch
+logging, security-group boundaries, Terraform drift, and complete teardown.
 
-No AWS infrastructure has been applied yet.
+The environment was destroyed after verification and is not kept running. The
+reusable procedure and historical verification record are documented in
+[AWS Live Verification](aws-live-verification.md).
 
 These terms are used consistently throughout the documentation:
 
@@ -27,9 +32,9 @@ These terms are used consistently throughout the documentation:
 | Implemented | Application code or configuration exists in the repository |
 | Validated | Tests or static configuration checks have passed |
 | Speculatively planned | Terraform calculated intended AWS changes without creating resources |
-| Deployed | Resources have actually been created and verified in a runtime environment |
+| Live verified | Resources were temporarily created, tested in a runtime environment, and removed successfully |
 
-The AWS design is currently implemented, validated, and speculatively planned, but not yet deployed.
+The AWS design is implemented, validated, and live verified.
 
 ## System context
 
