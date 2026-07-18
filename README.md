@@ -23,15 +23,16 @@ The repository currently includes:
 
 The AWS Terraform configuration has been:
 
-- formatted;
-- initialized without activating the remote backend;
-- validated;
-- evaluated through an AWS-backed speculative plan.
+- formatted and validated;
+- initialized against the remote S3 backend;
+- planned and applied in a controlled live-verification session;
+- removed after successful runtime and cleanup verification.
 
-**No AWS infrastructure has been applied yet.**
+The live exercise confirmed ECS Fargate, the Application Load Balancer, RDS PostgreSQL, Flyway migrations, persistence
+across task replacement, CloudWatch logging, security-group boundaries, zero Terraform drift, and complete teardown.
 
-A future, separately scheduled verification exercise will deploy the environment temporarily, verify the running
-application, and then remove the resources.
+The environment is not kept running. See
+[AWS Live Verification](docs/aws-live-verification.md) for the reusable deploy–verify–destroy procedure.
 
 ## Application capabilities
 
