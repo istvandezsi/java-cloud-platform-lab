@@ -225,10 +225,12 @@ The Kubernetes configuration defines:
 - one ClusterIP Service;
 - datasource configuration through a ConfigMap and Secret;
 - separate readiness and liveness probes;
-- CPU and memory requests and limits.
+- CPU and memory requests and limits;
+- a non-root security context, restricted container privileges, and a read-only root filesystem.
 
 PostgreSQL is not deployed by the Kubernetes manifests. A reachable external database must be configured before the
-application can start successfully.
+application can start successfully. The tracked Secret is an example that must be copied and populated locally before
+deployment.
 
 Operational commands are documented in [Operations](docs/operations.md).
 

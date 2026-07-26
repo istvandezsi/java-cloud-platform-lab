@@ -217,7 +217,9 @@ The Kubernetes design includes:
 - a ConfigMap for the datasource URL;
 - a Secret for datasource credentials;
 - separate readiness and liveness probes;
-- CPU and memory requests and limits.
+- CPU and memory requests and limits;
+- a non-root security context, restricted container privileges, and a read-only root filesystem;
+- no automatic service-account token mount.
 
 PostgreSQL must be reachable from the cluster through the configured datasource address.
 
