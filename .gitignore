@@ -44,3 +44,6 @@ crash.log
 crash.*.log
 .terraformrc
 terraform.rc
+
+### Kubernetes ###
+/k8s/secret.local.yaml

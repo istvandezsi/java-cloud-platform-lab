@@ -312,8 +312,16 @@ Review before applying:
 
 ```text
 k8s/configmap.yaml
-k8s/secret.yaml
+k8s/deployment.yaml
 ```
+
+Create a local Secret manifest from the tracked example:
+
+```bash
+cp k8s/secret.example.yaml k8s/secret.local.yaml
+```
+
+Replace both `replace-me` values in `k8s/secret.local.yaml`. The local file is ignored by Git and must not be committed.
 
 For local Docker Desktop Kubernetes testing, start the Compose database:
 
@@ -330,8 +338,12 @@ jdbc:postgresql://host.docker.internal:5432/cloudlab
 Build the local image:
 
 ```bash
-docker build -t java-cloud-platform-lab:latest .
+docker build -t java-cloud-platform-lab:1.0.0 .
 ```
+
+The local manifest uses the project version tag. For a published image, replace it with an immutable registry digest,
+for example `registry.example.com/java-cloud-platform-lab@sha256:<digest>`, so the deployed image cannot change without
+a manifest update.
 
 Confirm the active cluster:
 
@@ -342,7 +354,11 @@ kubectl config current-context
 Apply the manifests:
 
 ```bash
-kubectl apply -f k8s/
+kubectl apply \
+  -f k8s/configmap.yaml \
+  -f k8s/secret.local.yaml \
+  -f k8s/deployment.yaml \
+  -f k8s/service.yaml
 ```
 
 Wait for the rollout:
@@ -400,7 +416,11 @@ kubectl config current-context
 Remove the project resources:
 
 ```bash
-kubectl delete -f k8s/
+kubectl delete \
+  -f k8s/service.yaml \
+  -f k8s/deployment.yaml \
+  -f k8s/secret.local.yaml \
+  -f k8s/configmap.yaml
 ```
 
 ## Kubernetes troubleshooting
