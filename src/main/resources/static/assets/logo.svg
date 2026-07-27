@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="logo-title">
+    <title id="logo-title">Java Cloud Platform Lab logo</title>
+    <rect width="128" height="128" rx="30" fill="#0f172a"/>
+    <path
+            d="M47 24h34M52 24v27L29 91c-5 9 2 19 12 19h46c10 0 17-10 12-19L76 51V24"
+            fill="none"
+            stroke="#ffffff"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="7"/>
+    <path
+            d="M36 82c9-5 17 5 27 0 10-6 19 5 29 0l7 14c3 7-2 14-12 14H41c-10 0-15-7-12-14l7-14Z"
+            fill="#2563eb"/>
+    <path
+            d="M39 94h50M36 102h56"
+            fill="none"
+            stroke="#ffffff"
+            stroke-linecap="round"
+            stroke-width="4"/>
+    <circle cx="47" cy="69" r="4" fill="#93c5fd"/>
+    <circle cx="65" cy="61" r="3" fill="#93c5fd"/>
+    <circle cx="78" cy="71" r="5" fill="#93c5fd"/>
+</svg>

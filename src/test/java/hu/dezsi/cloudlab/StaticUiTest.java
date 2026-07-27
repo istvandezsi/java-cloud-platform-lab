@@ -22,7 +22,9 @@ class StaticUiTest {
     void indexPageIsServed() throws Exception {
         mockMvc.perform(get("/index.html"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Task Board")));
+                .andExpect(content().string(containsString("Task Board")))
+                .andExpect(content().string(containsString("/assets/logo.svg")))
+                .andExpect(content().string(containsString("/assets/favicon.svg")));
     }
 
     @Test
@@ -37,5 +39,20 @@ class StaticUiTest {
         mockMvc.perform(get("/styles.css"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("task-item")));
+    }
+
+    @Test
+    void projectLogoIsServed() throws Exception {
+        mockMvc.perform(get("/assets/logo.svg"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("image/svg+xml"))
+                .andExpect(content().string(containsString("Java Cloud Platform Lab logo")));
+    }
+
+    @Test
+    void faviconIsServed() throws Exception {
+        mockMvc.perform(get("/assets/favicon.svg"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("image/svg+xml"));
     }
 }

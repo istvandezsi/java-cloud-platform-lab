@@ -1,4 +1,8 @@
-# Java Cloud Platform Lab
+<p align="center">
+  <img src="src/main/resources/static/assets/logo.svg" alt="Java Cloud Platform Lab logo" width="128">
+</p>
+
+<h1 align="center">Java Cloud Platform Lab</h1>
 
 Java Cloud Platform Lab is a practical reference implementation showing how a Spring Boot application can be developed,
 persisted, observed, containerized, validated, and deployed across local, Kubernetes, and AWS environments.
