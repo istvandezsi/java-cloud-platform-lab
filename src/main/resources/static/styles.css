@@ -35,6 +35,10 @@ input {
 }
 
 button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.75rem;
     border: 0;
     border-radius: 0.7rem;
     background: var(--accent);
@@ -61,6 +65,7 @@ input:focus-visible {
 input {
     width: 100%;
     min-width: 0;
+    min-height: 2.75rem;
     border: 1px solid var(--border);
     border-radius: 0.7rem;
     background: #ffffff;
@@ -80,10 +85,15 @@ input::placeholder {
 
 .page-header {
     display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
+    align-items: center;
     gap: 1.5rem;
     margin-bottom: 2rem;
+}
+
+.project-logo {
+    width: clamp(4.5rem, 9vw, 6rem);
+    height: auto;
+    flex: 0 0 auto;
 }
 
 .eyebrow {
@@ -186,10 +196,21 @@ h2 {
 
 .panel-header {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
     gap: 1rem;
     margin-bottom: 1rem;
+}
+
+.task-list-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 19.5rem;
+    padding-right: 0.75rem;
+}
+
+.task-list-header #refresh-button {
+    width: calc((100% - 1rem) / 3);
+    justify-self: end;
 }
 
 .task-form {
@@ -205,6 +226,7 @@ h2 {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 0.75rem;
+    padding-right: 0.75rem;
 }
 
 .secondary-button,
@@ -287,13 +309,12 @@ h2 {
 
 .task-actions {
     display: grid;
-    grid-template-columns: 5rem 6.25rem 5rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.5rem;
 }
 
 .task-actions button {
     width: 100%;
-    min-height: 2.75rem;
     padding: 0.65rem 0.75rem;
     font-size: 0.95rem;
     line-height: 1;
@@ -306,9 +327,26 @@ h2 {
 }
 
 @media (max-width: 760px) {
-    .page-header,
     .panel-header {
         display: grid;
+    }
+
+    .task-list-header {
+        grid-template-columns: 1fr;
+        padding-right: 0;
+    }
+
+    .task-list-header #refresh-button {
+        width: 100%;
+    }
+
+    .page-header {
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .project-logo {
+        width: 4rem;
     }
 
     .summary {
@@ -318,6 +356,10 @@ h2 {
     .form-row,
     .task-item {
         grid-template-columns: 1fr;
+    }
+
+    .form-row {
+        padding-right: 0;
     }
 
     .task-actions {
