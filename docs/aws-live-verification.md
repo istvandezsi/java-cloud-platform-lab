@@ -582,9 +582,6 @@ APPLICATION_LOG_GROUP="$(
 Verify the API and health endpoints:
 
 ```bash
-curl -fsS "$APPLICATION_URL/api/hello"
-echo
-
 curl -fsS "$APPLICATION_URL/actuator/health"
 echo
 

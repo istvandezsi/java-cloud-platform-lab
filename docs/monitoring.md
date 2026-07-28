@@ -28,33 +28,7 @@ Example metric groups include:
 
 ## Application-specific metrics
 
-The application exposes custom counters for the hello endpoint and task API operations.
-
-### Hello endpoint metric
-
-Call the endpoint:
-
-```bash
-curl http://localhost:8080/api/hello
-```
-
-Then check the Prometheus metrics endpoint:
-
-```bash
-curl http://localhost:8080/actuator/prometheus
-```
-
-The custom counter should appear as:
-
-```text
-hello_requests_total
-```
-
-In Prometheus, the metric can be queried with:
-
-```text
-hello_requests_total
-```
+The application exposes a custom counter for task API operations.
 
 ### Task API operation metric
 
@@ -288,7 +262,6 @@ The dashboard includes panels for:
 
 * Application up status
 * HTTP requests per second
-* Hello requests per second
 * JVM memory used
 * Application startup time
 * Successful task operations per second, grouped by operation

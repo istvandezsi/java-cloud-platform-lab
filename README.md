@@ -176,7 +176,6 @@ admin / admin
 ### Verify the application
 
 ```bash
-curl http://localhost:8080/api/hello
 curl http://localhost:8080/api/tasks
 curl http://localhost:8080/actuator/health
 curl http://localhost:8080/actuator/health/readiness

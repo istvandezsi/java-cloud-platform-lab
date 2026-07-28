@@ -135,10 +135,10 @@ These credentials are local development defaults only.
 
 ## Verify the application
 
-Verify the hello endpoint:
+Verify the task API:
 
 ```bash
-curl http://localhost:8080/api/hello
+curl http://localhost:8080/api/tasks
 ```
 
 Verify general health:
@@ -625,7 +625,6 @@ APPLICATION_URL=$(terraform -chdir=terraform output -raw application_url)
 Verify the application:
 
 ```bash
-curl "$APPLICATION_URL/api/hello"
 curl "$APPLICATION_URL/actuator/health"
 curl "$APPLICATION_URL/actuator/health/readiness"
 curl "$APPLICATION_URL/api/tasks"
