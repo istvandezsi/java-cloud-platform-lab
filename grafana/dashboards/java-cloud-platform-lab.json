@@ -8,7 +8,7 @@
   ],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 2,
+  "version": 3,
   "refresh": "15s",
   "panels": [
     {
@@ -100,28 +100,6 @@
       }
     },
     {
-      "id": 5,
-      "type": "timeseries",
-      "title": "Hello requests per second",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "expr": "rate(hello_requests_total{job=\"java-cloud-platform-lab\"}[5m])",
-          "legendFormat": "hello requests/sec",
-          "refId": "A"
-        }
-      ],
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 16
-      }
-    },
-    {
       "id": 6,
       "type": "timeseries",
       "title": "Successful task operations per second",
@@ -139,7 +117,7 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 12,
+        "x": 0,
         "y": 16
       }
     },
@@ -160,9 +138,9 @@
       ],
       "gridPos": {
         "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 24
+        "w": 12,
+        "x": 12,
+        "y": 16
       }
     }
   ]

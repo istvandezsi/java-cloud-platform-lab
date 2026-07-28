@@ -9,6 +9,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -30,6 +31,13 @@ class OpenApiDocumentationTest {
                 .andExpect(jsonPath("$.info.title", is("Java Cloud Platform Lab API")))
                 .andExpect(jsonPath("$.info.version", is("1.0.0")))
                 .andExpect(jsonPath("$.paths", hasKey("/api/tasks")))
-                .andExpect(jsonPath("$.paths", hasKey("/api/tasks/{id}")));
+                .andExpect(jsonPath("$.paths", hasKey("/api/tasks/{id}")))
+                .andExpect(jsonPath("$.paths", not(hasKey("/api/hello"))));
+    }
+
+    @Test
+    void legacyHelloEndpointIsNotExposed() throws Exception {
+        mockMvc.perform(get("/api/hello"))
+                .andExpect(status().isNotFound());
     }
 }
