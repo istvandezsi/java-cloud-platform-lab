@@ -48,6 +48,16 @@ function createTask(title) {
     });
 }
 
+function updateCreateTaskButtonState() {
+    createTaskButton.disabled = taskTitleInput.disabled || !taskTitleInput.value.trim();
+}
+
+function updateSaveButtonState(titleInput, saveButton, originalTitle) {
+    const title = titleInput.value.trim();
+
+    saveButton.disabled = !title || title === originalTitle;
+}
+
 function updateTaskTitle(taskId, title) {
     return requestJson(`/api/tasks/${taskId}`, {
         method: "PATCH",
@@ -109,6 +119,11 @@ function createTaskElement(task) {
         await saveTaskTitle(task.id, titleInput, saveButton);
     });
 
+    titleInput.addEventListener("input", () => {
+        updateSaveButtonState(titleInput, saveButton, task.title);
+    });
+    updateSaveButtonState(titleInput, saveButton, task.title);
+
     const completeButton = createButton("Complete", "task-button", async () => {
         await completeExistingTask(task.id, completeButton);
     });
@@ -161,7 +176,7 @@ async function handleCreateTask(event) {
 
     try {
         taskTitleInput.disabled = true;
-        createTaskButton.disabled = true;
+        updateCreateTaskButtonState();
 
         await createTask(title);
 
@@ -173,7 +188,7 @@ async function handleCreateTask(event) {
         setStatus(`Error: ${error.message}`, "error");
     } finally {
         taskTitleInput.disabled = false;
-        createTaskButton.disabled = false;
+        updateCreateTaskButtonState();
         taskTitleInput.focus();
     }
 }
@@ -219,6 +234,8 @@ async function runTaskAction(button, successMessage, action) {
 }
 
 taskForm.addEventListener("submit", handleCreateTask);
+taskTitleInput.addEventListener("input", updateCreateTaskButtonState);
 refreshButton.addEventListener("click", loadTasks);
 
+updateCreateTaskButtonState();
 loadTasks();
