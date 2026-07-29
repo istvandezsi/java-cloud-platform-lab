@@ -29,7 +29,7 @@ class OpenApiDocumentationTest {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.openapi").exists())
                 .andExpect(jsonPath("$.info.title", is("Java Cloud Platform Lab API")))
-                .andExpect(jsonPath("$.info.version", is("1.0.0")))
+                .andExpect(jsonPath("$.info.version", is("1.1.0")))
                 .andExpect(jsonPath("$.paths", hasKey("/api/tasks")))
                 .andExpect(jsonPath("$.paths", hasKey("/api/tasks/{id}")))
                 .andExpect(jsonPath("$.paths", not(hasKey("/api/hello"))));

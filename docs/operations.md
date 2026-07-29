@@ -297,7 +297,7 @@ jdbc:postgresql://host.docker.internal:5432/cloudlab
 Build the local image:
 
 ```bash
-docker build -t java-cloud-platform-lab:1.0.0 .
+docker build -t java-cloud-platform-lab:1.1.0 .
 ```
 
 The manifest uses the current project version tag. For a registry image, prefer an immutable digest such as
