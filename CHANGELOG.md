@@ -2,6 +2,37 @@
 
 This document records stable releases of Java Cloud Platform Lab.
 
+## v1.1.0 - 2026-07-30
+
+This release improves the project's presentation, security, documentation, and
+day-to-day behavior while preserving its focused reference-project scope.
+
+### Application and presentation
+
+- added a consistent project identity across the task board, README, and favicon;
+- added verified screenshots of the task board, OpenAPI documentation, Grafana,
+  and Prometheus;
+- removed the legacy `/api/hello` demonstration endpoint;
+- aligned the OpenAPI version with the Maven project version;
+- prevented duplicate task creation while a request is pending;
+- disabled task creation for empty titles and task saving when no valid edit is
+  present.
+
+### Runtime and platform
+
+- changed the application container to run as a non-root user;
+- hardened the Kubernetes workload with a read-only root filesystem, dropped
+  Linux capabilities, and disabled automatic service-account token mounting;
+- aligned the Terraform PostgreSQL configuration with the documented environment
+  and strengthened input validation.
+
+### Code and documentation
+
+- made task mutations transactional and removed duplicated metrics logic;
+- updated the PostgreSQL integration test to the current Testcontainers API;
+- streamlined the project documentation and diagrams;
+- clarified operational guidance, design boundaries, and validation steps.
+
 ## v1.0.0 - 2026-07-18
 
 The first stable release of the project.
