@@ -43,7 +43,7 @@ cp terraform/terraform.tfvars.example terraform/terraform.tfvars
 
 Edit `terraform/terraform.tfvars` when different local values are required.
 
-The example configuration includes development-oriented values for:
+The example configuration includes values for:
 
 * the AWS region
 * the deployment environment
@@ -124,121 +124,24 @@ provider-level common tags and receive descriptive `Name` tags where supported.
 
 The root module defines one private Amazon ECR repository for the application container image.
 
-The repository:
+The repository enables scan-on-push, immutable tags, and forced deletion during lab teardown. Use a unique tag such as
+the Git commit SHA; CI does not publish images or authenticate to AWS.
 
-* enables image scanning when an image is pushed
-* uses immutable image tags
-* inherits the provider-level common tags
-* can be removed by `terraform destroy` even when it contains images
-
-Immutable tags prevent an existing version tag from being replaced. Use a unique image tag, such as the Git commit SHA,
-for every published image.
-
-The repository must exist before an image can be pushed. The following commands are intended for use after the Terraform
-configuration has been applied.
-
-### Obtain the repository URL
-
-From the repository root:
-
-```bash
-ECR_REPOSITORY_URL=$(terraform -chdir=terraform output -raw ecr_repository_url)
-```
-
-Extract the registry hostname:
-
-```bash
-ECR_REGISTRY=${ECR_REPOSITORY_URL%%/*}
-```
-
-Set the AWS region to the same value used by the Terraform `aws_region` variable:
-
-```bash
-AWS_REGION=eu-central-1
-```
-
-When using a different Terraform region, replace `eu-central-1` accordingly.
-
-### Authenticate Docker to ECR
-
-```bash
-aws ecr get-login-password --region "$AWS_REGION" \
-  | docker login \
-      --username AWS \
-      --password-stdin "$ECR_REGISTRY"
-```
-
-The ECR authentication token is temporary, so repeat this command when the token expires.
-
-### Select an image tag
-
-Use the current Git commit SHA as the image version:
-
-```bash
-IMAGE_TAG=$(git rev-parse --short HEAD)
-```
-
-Verify the selected values:
-
-```bash
-echo "$ECR_REPOSITORY_URL"
-echo "$IMAGE_TAG"
-```
-
-### Build the application image
-
-```bash
-docker build \
-  --tag "java-cloud-platform-lab:$IMAGE_TAG" \
-  .
-```
-
-### Tag the image for ECR
-
-```bash
-docker tag \
-  "java-cloud-platform-lab:$IMAGE_TAG" \
-  "$ECR_REPOSITORY_URL:$IMAGE_TAG"
-```
-
-### Push the image
-
-```bash
-docker push "$ECR_REPOSITORY_URL:$IMAGE_TAG"
-```
-
-Set the same published tag in `terraform/terraform.tfvars`:
-
-```hcl
-application_image_tag = "<git-commit-sha>"
-```
-
-The ECS task definition uses the resulting image reference:
+`application_image_tag` is combined with the repository URL in the ECS task definition:
 
 ```text
 <ecr-repository-url>:<application-image-tag>
 ```
 
-Image publishing is currently a manual operation. CI does not authenticate to AWS or push container images.
+The ECR repository and ECS service belong to the same root module, so a new environment requires a two-stage bootstrap:
 
-### Bootstrap a new environment
+1. create the repository with a temporary nonblank image tag;
+2. publish the real image with an immutable tag;
+3. update `application_image_tag`;
+4. update the ECS task definition and service.
 
-The ECR repository and ECS service are managed by the same Terraform root module. In a brand-new environment, the
-repository does not exist before the first apply, so an application image cannot be published to it in advance.
-
-Use this bootstrap sequence:
-
-1. Keep a temporary nonblank `application_image_tag` value and apply the configuration to create the ECR repository and
-   the remaining infrastructure.
-2. Obtain the new repository URL and publish the application image with a unique immutable tag.
-3. Replace the temporary `application_image_tag` value with the published tag.
-4. Run `terraform apply` again so the ECS task definition and service use the available image.
-
-During the interval between the two applies, ECS task launches are expected to fail because the initially referenced
-image does not exist. This two-step process is limited to the first deployment of a new environment.
-
-For the complete tested workflow—including planning, image publication, runtime checks, persistence verification,
-drift detection, destruction, and AWS-side cleanup—see
+The temporary ECS deployment cannot start until the real image is published. Image publishing commands are maintained
+in [Operations](../docs/operations.md#publish-an-immutable-image-to-ecr); the tested end-to-end procedure is recorded in
 [AWS Live Verification](../docs/aws-live-verification.md).
 
 ## PostgreSQL database
@@ -248,7 +151,7 @@ The root module defines one private Amazon RDS PostgreSQL instance for the appli
 The database configuration includes:
 
 * PostgreSQL with no explicitly pinned engine version
-* a development-oriented instance class supplied through `database_instance_class`
+* an instance class supplied through `database_instance_class`
 * 20 GiB of General Purpose SSD storage using `gp3`
 * encrypted storage
 * a single-AZ deployment
@@ -265,23 +168,22 @@ The RDS DB subnet group contains both existing private subnets across two Availa
 
 ```mermaid
 flowchart LR
-    Internet[Internet] -->|TCP 80| LoadBalancer[Application Load Balancer]
-    LoadBalancerSecurityGroup[Load-balancer security group] -. attached to .-> LoadBalancer
+    Internet[Internet]
 
-    PublicSubnet1[Public subnet 1] --> LoadBalancer
-    PublicSubnet2[Public subnet 2] --> LoadBalancer
-    PublicSubnet1 --> Application[ECS Fargate application task]
-    PublicSubnet2 --> Application
+    subgraph VPC[VPC]
+        subgraph Public[Public subnets in two Availability Zones]
+            LoadBalancer[Application Load Balancer]
+            Application[ECS Fargate task]
+        end
 
-    LoadBalancerSecurityGroup -->|TCP 8080| ApplicationSecurityGroup[Application security group]
-    ApplicationSecurityGroup -. attached to .-> Application
+        subgraph Private[Private DB subnets in two Availability Zones]
+            Database[(Single-AZ RDS PostgreSQL)]
+        end
+    end
 
-    PrivateSubnet1[Private subnet 1] --> SubnetGroup[RDS DB subnet group]
-    PrivateSubnet2[Private subnet 2] --> SubnetGroup
-    SubnetGroup --> Database[(RDS PostgreSQL)]
-
-    DatabaseSecurityGroup[Database security group] -. attached to .-> Database
-    ApplicationSecurityGroup -->|TCP 5432| DatabaseSecurityGroup
+    Internet -->|TCP 80| LoadBalancer
+    LoadBalancer -->|security group: TCP 8080| Application
+    Application -->|security group: TCP 5432| Database
 ```
 
 The subnet group spans two Availability Zones so RDS has valid private placement options. The current database is
@@ -306,23 +208,12 @@ The secret value is not read into a Terraform output.
 
 ### Credential rotation
 
-RDS rotates the managed master-user secret every seven days by default.
+RDS rotates the managed master-user secret every seven days by default. ECS resolves secret values only when a task
+starts, so the service needs a replacement task after rotation. Automatic replacement is not configured; the command is
+documented in [Operations](../docs/operations.md#redeploy-after-database-secret-rotation).
 
-ECS resolves the secret values when a task starts. A running container does not automatically receive a new value when
-the secret is rotated. After a rotation, the ECS service must launch a replacement task to read the current credentials.
-
-A replacement task can be started with:
-
-```bash
-aws ecs update-service \
-  --cluster "$(terraform -chdir=terraform output -raw ecs_cluster_name)" \
-  --service "$(terraform -chdir=terraform output -raw ecs_service_name)" \
-  --force-new-deployment
-```
-
-Automatic redeployment after secret rotation is not configured in this lab environment. A production implementation
-should automate credential refresh and use a dedicated least-privilege application database user rather than the
-database master user.
+A production implementation should automate credential refresh and use a dedicated least-privilege application
+database user rather than the master user.
 
 ### Database access
 
@@ -349,7 +240,7 @@ treated as disposable, and this lifecycle configuration should not be reused for
 
 The root module defines one ECS cluster and one ECS Fargate service for the Spring Boot application.
 
-The development-oriented task configuration uses:
+The task configuration uses:
 
 * Fargate launch type
 * `awsvpc` network mode
@@ -392,7 +283,7 @@ A separate application task role is not defined because the application does not
 
 The ECS service runs tasks across the existing public subnets and assigns each task a public IPv4 address.
 
-This is a temporary development-oriented networking choice because the private subnets do not currently have a NAT
+This networking choice is used because the private subnets do not currently have a NAT
 gateway or VPC endpoints. Without one of those outbound paths, tasks in the private subnets could not retrieve the ECR
 image, database secret, or CloudWatch Logs service endpoints.
 
@@ -466,7 +357,7 @@ The target group checks:
 /actuator/health/readiness
 ```
 
-The development-oriented health-check configuration uses:
+The health-check configuration uses:
 
 * HTTP
 * expected status code `200`
@@ -499,36 +390,16 @@ is configured.
 
 ## Outputs
 
-The root module exposes:
-
-* `vpc_id`
-* `public_subnet_ids`
-* `private_subnet_ids`
-* `ecr_repository_url`
-* `database_endpoint`
-* `database_port`
-* `database_name`
-* `database_master_secret_arn`
-* `ecs_cluster_name`
-* `ecs_service_name`
-* `application_log_group_name`
-* `load_balancer_dns_name`
-* `application_url`
-
-Subnet IDs are returned in position order.
-
-The ECR repository URL is used when tagging, publishing, and deploying the application image.
-
-The database endpoint contains the RDS DNS address without the port. The port is exposed separately through
-`database_port`.
-
-The database master-secret ARN identifies the RDS-managed Secrets Manager secret. It does not expose the secret value.
-
-The ECS cluster and service outputs identify the application runtime resources. The application log-group output
-identifies the CloudWatch Logs group that receives the application container logs.
-
-The load-balancer DNS output contains the AWS-generated hostname. The application URL adds the current `http://` scheme
-to that hostname.
+| Output | Purpose |
+|---|---|
+| `vpc_id` | Project VPC identifier |
+| `public_subnet_ids`, `private_subnet_ids` | Subnet identifiers in position order |
+| `ecr_repository_url` | Image publishing and deployment target |
+| `database_endpoint`, `database_port`, `database_name` | Application database connection coordinates |
+| `database_master_secret_arn` | Identifier of the RDS-managed secret; it does not expose the value |
+| `ecs_cluster_name`, `ecs_service_name` | ECS runtime identifiers |
+| `application_log_group_name` | CloudWatch application log group |
+| `load_balancer_dns_name`, `application_url` | Public load-balancer hostname and HTTP URL |
 
 ## Remote state
 
@@ -636,34 +507,15 @@ are created only when `terraform apply` is run with valid AWS credentials.
 
 ## Current limitations
 
-The current Terraform configuration intentionally contains:
+The Terraform design remains intentionally development-oriented:
 
-* no NAT gateway or NAT instance
-* no VPC endpoints
-* ECS tasks in public subnets with public IPv4 addresses for outbound connectivity
-* public application access over HTTP only
-* no custom domain, TLS certificate, HTTPS listener, or HTTP-to-HTTPS redirect
-* no AWS WAF
-* no authentication at the load balancer
-* no ECS service autoscaling
-* no multiple-task deployment
-* no separate application task IAM role
-* no ECS Exec
-* no Container Insights
-* no CloudWatch alarms or dashboards
-* no AWS-hosted Prometheus or Grafana
-* no automatic ECS redeployment after RDS master-secret rotation
-* a two-step application-image bootstrap for the first deployment of a new environment
-* no custom network ACLs
-* no IPv6 configuration
-* no Multi-AZ database deployment
-* no automated database backups or final snapshots
-* no automated image-publishing workflow
-* no automated application deployment workflow
-* no state-bucket provisioning
-* no active remote-state configuration
-* no state migration
-* no modules
-* no environment-specific directories
+* ECS uses one public-subnet task with a public IPv4 address; no NAT, VPC endpoints, autoscaling, ECS Exec, or separate
+  application task role is configured.
+* Public access is HTTP-only, without a custom domain, TLS, WAF, or load-balancer authentication.
+* RDS is single-AZ and disposable, without retained automated backups or a final snapshot.
+* CloudWatch alarms, dashboards, Container Insights, and AWS-hosted Prometheus or Grafana are not configured.
+* Image publishing, deployment, and post-rotation ECS replacement are manual.
+* The remote-state bucket, state migration, modules, and environment-specific directory structure are managed outside
+  this root module.
 
 Project-wide context and operational procedures are documented in [Architecture](../docs/architecture.md) and [Operations](../docs/operations.md).

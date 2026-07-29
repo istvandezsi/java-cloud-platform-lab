@@ -69,21 +69,23 @@ Prometheus and Grafana are currently provided only by the local Docker Compose e
 ```mermaid
 flowchart LR
     Client[Browser or API client]
-    Controller[HTTP controllers]
-    Metrics[Application metrics]
+    Controller[TaskController]
+    Metrics[TaskMetrics]
     Service[Task service]
+    Registry[Micrometer registry]
     Database[(PostgreSQL)]
 
     Client --> Controller
     Controller --> Metrics
     Metrics --> Service
+    Metrics -->|records operation outcome| Registry
     Service --> Database
 ```
 
 The application follows a small layered design:
 
-- controllers handle HTTP routing, validation, response codes, and API documentation;
-- the metrics layer records task-operation outcomes;
+- `TaskController` handles task routing, validation, response codes, and API documentation;
+- `TaskMetrics` wraps service calls and records their outcomes through Micrometer;
 - the service layer performs persistence operations through Spring JDBC;
 - PostgreSQL stores task state.
 
@@ -103,12 +105,12 @@ sequenceDiagram
     participant Flyway
     participant PostgreSQL
 
-    Application->>PostgreSQL: Establish datasource connection
-    Application->>Flyway: Start migration validation
+    Application->>PostgreSQL: Initialize datasource
+    Application->>Flyway: Start migration
     Flyway->>PostgreSQL: Read schema history
     Flyway->>PostgreSQL: Apply pending migrations
     Flyway-->>Application: Migration complete
-    Application-->>Application: Become ready
+    Application-->>Application: Accept traffic when ready
 ```
 
 The test strategy uses:
@@ -192,8 +194,7 @@ flowchart TD
         Pod[Application Pod]
         ConfigMap[Datasource ConfigMap]
         Secret[Datasource Secret]
-        Readiness[Readiness probe]
-        Liveness[Liveness probe]
+        Kubelet[Kubelet]
     end
 
     Database[(External PostgreSQL)]
@@ -204,8 +205,7 @@ flowchart TD
     ConfigMap -->|Datasource URL| Pod
     Secret -->|Datasource credentials| Pod
 
-    Readiness -->|Readiness endpoint| Pod
-    Liveness -->|Liveness endpoint| Pod
+    Kubelet -->|readiness and liveness probes| Pod
 
     Pod --> Database
 ```
@@ -259,8 +259,8 @@ flowchart LR
     LoadBalancer -->|Application traffic| ECS
     ECS -->|PostgreSQL| RDS
 
-    ECS -->|pulls container image| ECR
-    ECS -->|retrieves database credentials| Secret
+    ECR -->|container image| ECS
+    Secret -->|database credentials at startup| ECS
     ECS -->|publishes application logs| Logs
 ```
 
@@ -421,25 +421,16 @@ CI does not:
 
 ## Design boundaries
 
-The project intentionally remains bounded.
+The implementation deliberately stops short of a production platform:
 
-It does not currently provide:
+- public access is HTTP-only, without a custom domain, WAF, or load-balancer authentication;
+- ECS runs one task in public subnets and has no autoscaling, NAT gateway, or VPC endpoints;
+- RDS is single-AZ and disposable, without retained backups or a final snapshot;
+- image publishing, deployment, and post-rotation ECS replacement are manual;
+- the repository does not provision its remote-state bucket or Kubernetes-hosted data and monitoring services;
+- capacity planning and load testing are outside the current scope.
 
-- HTTPS or a custom domain;
-- AWS WAF or load-balancer authentication;
-- ECS autoscaling or multiple desired tasks;
-- private ECS subnets with NAT or VPC endpoints;
-- Multi-AZ RDS;
-- retained database backups or final snapshots;
-- automatic image publishing;
-- deployment automation;
-- a live remote Terraform backend configured by the repository;
-- automatic ECS redeployment after secret rotation;
-- Kubernetes Ingress;
-- production capacity planning or load testing.
-
-These limitations are explicit so the repository demonstrates a coherent, inspectable design without growing into an
-open-ended platform project.
+These boundaries keep the implemented design coherent and inspectable.
 
 ## Documentation ownership
 
@@ -447,8 +438,8 @@ Each document has one primary responsibility:
 
 | Document | Responsibility |
 |---|---|
-| [Project README](../README.md) | Portfolio overview, capabilities, quick start, and navigation |
+| [Project README](../README.md) | Project overview, capabilities, quick start, and navigation |
 | [Architecture](architecture.md) | Component relationships, runtime topologies, trust boundaries, and design decisions |
 | [Operations](operations.md) | Commands for running, validating, troubleshooting, and cleaning up environments |
 | [Monitoring](monitoring.md) | Metrics, Prometheus queries, alert rules, and Grafana dashboards |
-| [Terraform](../terraform/README.md) | Terraform resources, variables, outputs, backend, image publishing, and AWS limitations |
+| [Terraform](../terraform/README.md) | Terraform resources, variables, outputs, backend behavior, and AWS limitations |
