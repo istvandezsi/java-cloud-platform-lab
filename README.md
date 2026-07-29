@@ -51,6 +51,44 @@ The application provides:
 - health, readiness, and liveness endpoints;
 - Prometheus-format runtime and application metrics.
 
+## Project tour
+
+The local Docker Compose environment connects the task workflow with its API documentation and monitoring stack.
+
+### Task workflow
+
+<p align="center">
+  <img src="docs/images/task-board.png" alt="Task board showing two open and two completed platform-engineering tasks">
+</p>
+
+<p align="center"><em>Representative task states in the browser UI, backed by PostgreSQL.</em></p>
+
+### Observability
+
+<p align="center">
+  <img src="docs/images/grafana-dashboard.png" alt="Grafana dashboard showing application health, HTTP traffic, JVM memory, startup time, and task-operation metrics">
+</p>
+
+<p align="center"><em>Provisioned Grafana dashboard with application, JVM, HTTP, and task-operation metrics.</em></p>
+
+<details>
+<summary><strong>API documentation and Prometheus target health</strong></summary>
+<br>
+
+<p align="center">
+  <img src="docs/images/swagger-ui.png" alt="Swagger UI listing the task and Actuator API endpoints">
+</p>
+
+<p align="center"><em>Generated OpenAPI documentation for the task service.</em></p>
+
+<p align="center">
+  <img src="docs/images/prometheus-target.png" alt="Prometheus target health page showing the application scrape target up">
+</p>
+
+<p align="center"><em>Prometheus successfully scraping the application metrics endpoint.</em></p>
+
+</details>
+
 ## Technology stack
 
 ### Application
