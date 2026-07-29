@@ -3,6 +3,7 @@ package hu.dezsi.cloudlab;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.sql.DataSource;
 import java.sql.ResultSet;
@@ -34,6 +35,7 @@ public class TaskService {
                 .list();
     }
 
+    @Transactional
     public Task createTask(String title) {
         Number id = insertTask.executeAndReturnKey(Map.of(
                 "title", title,
@@ -47,6 +49,7 @@ public class TaskService {
         return findTask(id);
     }
 
+    @Transactional
     public Task updateTaskTitle(long id, String title) {
         int updatedRows = jdbcClient.sql("""
                         UPDATE tasks
@@ -64,6 +67,7 @@ public class TaskService {
         return findTask(id);
     }
 
+    @Transactional
     public Task completeTask(long id) {
         int updatedRows = jdbcClient.sql("""
                         UPDATE tasks

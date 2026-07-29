@@ -1,5 +1,6 @@
 const taskForm = document.querySelector("#task-form");
 const taskTitleInput = document.querySelector("#task-title");
+const createTaskButton = taskForm.querySelector("button[type=\"submit\"]");
 const taskList = document.querySelector("#task-list");
 const emptyState = document.querySelector("#empty-state");
 const statusMessage = document.querySelector("#status-message");
@@ -159,15 +160,21 @@ async function handleCreateTask(event) {
     }
 
     try {
+        taskTitleInput.disabled = true;
+        createTaskButton.disabled = true;
+
         await createTask(title);
 
         taskTitleInput.value = "";
-        taskTitleInput.focus();
 
         setStatus("Task created.", "success");
         await loadTasks();
     } catch (error) {
         setStatus(`Error: ${error.message}`, "error");
+    } finally {
+        taskTitleInput.disabled = false;
+        createTaskButton.disabled = false;
+        taskTitleInput.focus();
     }
 }
 
