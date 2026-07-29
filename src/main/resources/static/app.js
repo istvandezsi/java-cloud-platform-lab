@@ -1,5 +1,6 @@
 const taskForm = document.querySelector("#task-form");
 const taskTitleInput = document.querySelector("#task-title");
+const createTaskButton = taskForm.querySelector("button[type=\"submit\"]");
 const taskList = document.querySelector("#task-list");
 const emptyState = document.querySelector("#empty-state");
 const statusMessage = document.querySelector("#status-message");
@@ -45,6 +46,16 @@ function createTask(title) {
         },
         body: JSON.stringify({title})
     });
+}
+
+function updateCreateTaskButtonState() {
+    createTaskButton.disabled = taskTitleInput.disabled || !taskTitleInput.value.trim();
+}
+
+function updateSaveButtonState(titleInput, saveButton, originalTitle) {
+    const title = titleInput.value.trim();
+
+    saveButton.disabled = !title || title === originalTitle;
 }
 
 function updateTaskTitle(taskId, title) {
@@ -108,6 +119,11 @@ function createTaskElement(task) {
         await saveTaskTitle(task.id, titleInput, saveButton);
     });
 
+    titleInput.addEventListener("input", () => {
+        updateSaveButtonState(titleInput, saveButton, task.title);
+    });
+    updateSaveButtonState(titleInput, saveButton, task.title);
+
     const completeButton = createButton("Complete", "task-button", async () => {
         await completeExistingTask(task.id, completeButton);
     });
@@ -159,15 +175,21 @@ async function handleCreateTask(event) {
     }
 
     try {
+        taskTitleInput.disabled = true;
+        updateCreateTaskButtonState();
+
         await createTask(title);
 
         taskTitleInput.value = "";
-        taskTitleInput.focus();
 
         setStatus("Task created.", "success");
         await loadTasks();
     } catch (error) {
         setStatus(`Error: ${error.message}`, "error");
+    } finally {
+        taskTitleInput.disabled = false;
+        updateCreateTaskButtonState();
+        taskTitleInput.focus();
     }
 }
 
@@ -212,6 +234,8 @@ async function runTaskAction(button, successMessage, action) {
 }
 
 taskForm.addEventListener("submit", handleCreateTask);
+taskTitleInput.addEventListener("input", updateCreateTaskButtonState);
 refreshButton.addEventListener("click", loadTasks);
 
+updateCreateTaskButtonState();
 loadTasks();

@@ -28,13 +28,10 @@ public class TaskMetrics {
     }
 
     public void record(String operation, Runnable action) {
-        try {
+        record(operation, () -> {
             action.run();
-            increment(operation, "success");
-        } catch (TaskNotFoundException exception) {
-            increment(operation, "not_found");
-            throw exception;
-        }
+            return null;
+        });
     }
 
     public void recordValidationError(String operation) {

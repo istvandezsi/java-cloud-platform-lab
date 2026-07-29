@@ -150,14 +150,15 @@ The root module defines one private Amazon RDS PostgreSQL instance for the appli
 
 The database configuration includes:
 
-* PostgreSQL with no explicitly pinned engine version
+* PostgreSQL major version 17 with automatic minor-version upgrades, aligned with local and integration-test
+  environments
 * an instance class supplied through `database_instance_class`
 * 20 GiB of General Purpose SSD storage using `gp3`
 * encrypted storage
 * a single-AZ deployment
 * no public accessibility
 * no deletion protection
-* no automated backup retention
+* one day of automated backup retention
 * no final snapshot during deletion
 
 These settings favor a small, disposable learning environment rather than a production database.
@@ -229,7 +230,8 @@ No public, internet-wide, VPC-wide, or subnet-wide database ingress rule is defi
 
 The database is configured for straightforward lab teardown:
 
-* automated backup retention is disabled
+* automated backups are retained for one day while the instance exists
+* automated backups are deleted with the instance
 * `deletion_protection` is disabled
 * `skip_final_snapshot` is enabled
 
@@ -512,7 +514,7 @@ The Terraform design remains intentionally development-oriented:
 * ECS uses one public-subnet task with a public IPv4 address; no NAT, VPC endpoints, autoscaling, ECS Exec, or separate
   application task role is configured.
 * Public access is HTTP-only, without a custom domain, TLS, WAF, or load-balancer authentication.
-* RDS is single-AZ and disposable, without retained automated backups or a final snapshot.
+* RDS is single-AZ and disposable, with one-day automated backups deleted during teardown and no final snapshot.
 * CloudWatch alarms, dashboards, Container Insights, and AWS-hosted Prometheus or Grafana are not configured.
 * Image publishing, deployment, and post-rotation ECS replacement are manual.
 * The remote-state bucket, state migration, modules, and environment-specific directory structure are managed outside

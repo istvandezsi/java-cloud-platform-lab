@@ -25,8 +25,10 @@ resource "aws_security_group" "database" {
 resource "aws_db_instance" "database" {
   identifier = "${local.name_prefix}-database"
 
-  engine         = "postgres"
-  instance_class = var.database_instance_class
+  engine                     = "postgres"
+  engine_version             = "17"
+  auto_minor_version_upgrade = true
+  instance_class             = var.database_instance_class
 
   db_name  = var.database_name
   username = var.database_master_username
@@ -37,6 +39,9 @@ resource "aws_db_instance" "database" {
   allocated_storage = 20
   storage_type      = "gp3"
   storage_encrypted = true
+
+  backup_retention_period  = 1
+  delete_automated_backups = true
 
   multi_az            = false
   publicly_accessible = false
