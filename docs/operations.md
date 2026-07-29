@@ -1,13 +1,8 @@
 # Operations
 
-This document is the practical runbook for running, validating, troubleshooting, and cleaning up Java Cloud Platform Lab.
-
-It intentionally avoids repeating:
-
-- architecture and design rationale from [Architecture](architecture.md);
-- Prometheus queries and Grafana details from [Monitoring](monitoring.md);
-- Terraform resource descriptions, variables, backend design, and limitations from the
-  [Terraform documentation](../terraform/README.md).
+This runbook covers local execution, validation, troubleshooting, and cleanup. Design rationale belongs in
+[Architecture](architecture.md), monitoring queries in [Monitoring](monitoring.md), and AWS resource details in the
+[Terraform documentation](../terraform/README.md).
 
 ## Safety conventions
 
@@ -57,14 +52,6 @@ Clone and enter the repository:
 ```bash
 git clone https://github.com/istvandezsi/java-cloud-platform-lab.git
 cd java-cloud-platform-lab
-```
-
-Before starting issue work:
-
-```bash
-git switch main
-git pull --ff-only
-git switch -c <issue-branch>
 ```
 
 Check the working tree:
@@ -135,34 +122,13 @@ These credentials are local development defaults only.
 
 ## Verify the application
 
-Verify the task API:
+Verify the API and health endpoints:
 
 ```bash
 curl http://localhost:8080/api/tasks
-```
-
-Verify general health:
-
-```bash
 curl http://localhost:8080/actuator/health
-```
-
-Verify readiness:
-
-```bash
 curl http://localhost:8080/actuator/health/readiness
-```
-
-Verify liveness:
-
-```bash
 curl http://localhost:8080/actuator/health/liveness
-```
-
-Verify the task API:
-
-```bash
-curl http://localhost:8080/api/tasks
 ```
 
 Create a task:
@@ -242,21 +208,14 @@ docker compose down -v
 
 This removes the PostgreSQL volume and all locally stored tasks.
 
-## Monitoring
-
-Verify that the application exposes Prometheus metrics:
+## Verify monitoring
 
 ```bash
 curl http://localhost:8080/actuator/prometheus
 ```
 
-Use the dedicated [Monitoring documentation](monitoring.md) for:
-
-- application-specific metric names;
-- Prometheus queries;
-- scrape verification;
-- alert-rule verification;
-- Grafana dashboard contents.
+Use [Monitoring](monitoring.md) for the custom metric, PromQL queries, scrape and alert verification, and Grafana
+dashboard checks.
 
 ## Validate Prometheus configuration
 
@@ -341,9 +300,8 @@ Build the local image:
 docker build -t java-cloud-platform-lab:1.0.0 .
 ```
 
-The local manifest uses the project version tag. For a published image, replace it with an immutable registry digest,
-for example `registry.example.com/java-cloud-platform-lab@sha256:<digest>`, so the deployed image cannot change without
-a manifest update.
+The manifest uses the current project version tag. For a registry image, prefer an immutable digest such as
+`registry.example.com/java-cloud-platform-lab@sha256:<digest>`.
 
 Confirm the active cluster:
 
@@ -474,8 +432,7 @@ Common failures include:
 
 ## Validate Terraform locally
 
-The Terraform root module is documented in detail in
-[terraform/README.md](../terraform/README.md).
+The Terraform root module is documented in [Terraform](../terraform/README.md).
 
 Copy the example variables:
 
@@ -544,9 +501,8 @@ terraform -chdir=terraform plan \
   -lock-timeout=30s
 ```
 
-Review the proposed resource changes carefully.
-
-Do not run `terraform apply` as part of routine validation or documentation review.
+Review the proposed changes carefully. Do not apply infrastructure as part of routine validation or documentation
+review.
 
 ## Publish an immutable image to ECR
 
@@ -605,8 +561,8 @@ Set the same tag in `terraform/terraform.tfvars`:
 application_image_tag = "<git-commit-sha>"
 ```
 
-The complete first-deployment bootstrap sequence and its rationale remain authoritative in the
-[Terraform documentation](../terraform/README.md).
+The two-stage first-deployment bootstrap and full verification sequence are documented in
+[AWS Live Verification](aws-live-verification.md).
 
 ## Inspect a deployed AWS environment
 

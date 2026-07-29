@@ -1,273 +1,129 @@
-# Monitoring Notes
+# Monitoring
 
-This document describes the local monitoring setup for the Java Cloud Platform Lab application.
-
-The project exposes Prometheus-format metrics through Spring Boot Actuator and can run a local Prometheus server using
-Docker Compose.
+The local Docker Compose environment runs Prometheus and Grafana alongside the application and PostgreSQL.
+Prometheus scrapes Spring Boot Actuator metrics, and Grafana uses Prometheus as its provisioned data source.
 
 ## Metrics endpoint
 
-The application exposes metrics at:
+The application exposes Prometheus text format at:
 
 ```bash
 curl http://localhost:8080/actuator/prometheus
 ```
 
-This endpoint returns metrics in Prometheus text format.
+Available metrics include JVM, HTTP server, JDBC connection pool, disk, executor, startup, and application-specific
+task API measurements.
 
-Example metric groups include:
+## Task API metric
 
-* Application startup and readiness timing
-* HTTP server request metrics
-* JDBC connection pool metrics
-* JVM information
-* JVM memory and buffer metrics
-* Disk space metrics
-* Executor/thread pool metrics
-* Application-specific API metrics
-
-## Application-specific metrics
-
-The application exposes a custom counter for task API operations.
-
-### Task API operation metric
-
-Task API activity is recorded with the following metric:
+Task activity is recorded by:
 
 ```text
 cloudlab_task_api_operations_total
 ```
 
-The metric uses two low-cardinality labels:
+The counter has two low-cardinality labels:
 
-* `operation` identifies the task operation
-* `outcome` identifies the result
+| Label | Values |
+|---|---|
+| `operation` | `list`, `get`, `create`, `update`, `complete`, `delete` |
+| `outcome` | `success`, `not_found`, `validation_error` |
 
-Supported operation values are:
+`validation_error` applies to create and update requests; `not_found` applies to operations that address a task by ID.
+Task IDs, titles, exception messages, and other user-provided values are not used as labels.
 
-* `list`
-* `get`
-* `create`
-* `update`
-* `complete`
-* `delete`
-
-Supported outcome values are:
-
-* `success`
-* `not_found`
-* `validation_error`
-
-The metric does not include task IDs, task titles, exception messages, or other user-provided values.
-
-Create a task:
+Generate representative outcomes:
 
 ```bash
 curl -X POST http://localhost:8080/api/tasks \
   -H "Content-Type: application/json" \
   -d '{"title":"Verify task metrics"}'
-```
 
-Request a task that does not exist:
-
-```bash
 curl http://localhost:8080/api/tasks/999999
-```
 
-Submit an invalid task:
-
-```bash
 curl -X POST http://localhost:8080/api/tasks \
   -H "Content-Type: application/json" \
   -d '{"title":"   "}'
 ```
 
-Then check the metrics endpoint:
-
-```bash
-curl http://localhost:8080/actuator/prometheus
-```
-
-Example output:
-
-```text
-cloudlab_task_api_operations_total{operation="create",outcome="success"} 1.0
-cloudlab_task_api_operations_total{operation="create",outcome="validation_error"} 1.0
-cloudlab_task_api_operations_total{operation="get",outcome="not_found"} 1.0
-```
-
-In Prometheus, all task API operations can be queried with:
-
-```text
-cloudlab_task_api_operations_total
-```
-
-Successful task creation operations can be queried with:
+The resulting series include:
 
 ```text
 cloudlab_task_api_operations_total{operation="create",outcome="success"}
+cloudlab_task_api_operations_total{operation="create",outcome="validation_error"}
+cloudlab_task_api_operations_total{operation="get",outcome="not_found"}
 ```
 
-Task API operation rates can be queried with:
+Useful PromQL queries:
 
-```text
-rate(cloudlab_task_api_operations_total[5m])
-```
-
-## Local Prometheus setup
-
-The local monitoring setup uses Docker Compose to run both the application and Prometheus.
-
-Start the application and Prometheus:
-
-```bash
-docker compose up --build
-```
-
-The application is available at:
-
-```text
-http://localhost:8080
-```
-
-Prometheus is available at:
-
-```text
-http://localhost:9090
-```
-
-## Prometheus scrape configuration
-
-Prometheus is configured in:
-
-```text
-prometheus/prometheus.yml
-```
-
-The scrape target is:
-
-```text
-app:8080
-```
-
-This works because both services run inside the same Docker Compose network. Prometheus reaches the application by its
-Compose service name, not by `localhost`.
-
-## Verify the application
-
-Check the application health endpoint:
-
-```bash
-curl http://localhost:8080/actuator/health
-```
-
-Check the metrics endpoint:
-
-```bash
-curl http://localhost:8080/actuator/prometheus
-```
-
-## Verify Prometheus scraping
-
-Open Prometheus:
-
-```text
-http://localhost:9090
-```
-
-Run this query:
-
-```text
-up
-```
-
-Expected result:
-
-```text
-up{instance="app:8080", job="java-cloud-platform-lab"} 1
-```
-
-Then query an application metric:
-
-```text
-http_server_requests_seconds_count
-```
-
-This should return HTTP request metrics scraped from the Spring Boot application.
-
-Query the custom task API metric:
-
-```text
+```promql
 cloudlab_task_api_operations_total
 ```
 
-This should return task API operation counters after one or more task endpoints have been called.
-
-## Verify Prometheus alert rule
-
-Prometheus is configured to load local alerting rules from:
-
-```text
-prometheus/alerts.yml
+```promql
+cloudlab_task_api_operations_total{operation="create",outcome="success"}
 ```
 
-The local setup includes an `ApplicationDown` alert based on the application scrape status:
-
-```text
-up{job="java-cloud-platform-lab"} == 0
+```promql
+rate(cloudlab_task_api_operations_total[5m])
 ```
 
-To verify the alert rule locally, start the monitoring stack:
+## Prometheus
+
+Start the local stack:
 
 ```bash
 docker compose up --build
 ```
 
-Then open the Prometheus alerts page:
+Prometheus is available at `http://localhost:9090`. Its configuration is stored in
+`prometheus/prometheus.yml`, and it scrapes `app:8080/actuator/prometheus` over the Compose network.
 
-```text
-http://localhost:9090/alerts
+Verify target health with:
+
+```promql
+up{job="java-cloud-platform-lab"}
 ```
 
-Confirm that the `ApplicationDown` alert is visible.
+A healthy target returns a value of `1` for instance `app:8080`.
 
-When the application is running and Prometheus can scrape it successfully, the alert should remain inactive.
+Verify application data with:
 
-This local setup defines alerting rules only. Notification delivery through Alertmanager, email, or Slack is out of
-scope.
-
-## Verify Grafana dashboard
-
-Open Grafana:
-
-```text
-http://localhost:3000
+```promql
+http_server_requests_seconds_count{job="java-cloud-platform-lab"}
 ```
 
-The default local login is:
-
-```text
-admin / admin
+```promql
+cloudlab_task_api_operations_total{job="java-cloud-platform-lab"}
 ```
 
-Grafana is configured with Prometheus as its default data source.
+## Alert rule
 
-Open the dashboard:
+Prometheus loads `prometheus/alerts.yml`, which defines:
 
-```text
-Java Cloud Platform Lab
+```promql
+up{job="java-cloud-platform-lab"} == 0
 ```
 
-The dashboard includes panels for:
+Open `http://localhost:9090/alerts` and confirm that `ApplicationDown` is present. It remains inactive while Prometheus
+can scrape the application, enters pending when the target is unavailable, and fires after 30 seconds.
 
-* Application up status
-* HTTP requests per second
-* JVM memory used
-* Application startup time
-* Successful task operations per second, grouped by operation
-* Unsuccessful task operations per second, grouped by operation and outcome
+The repository defines the rule but does not configure Alertmanager or notification delivery.
 
-Generate successful task API activity:
+## Grafana
+
+Grafana is available at `http://localhost:3000` with the local credentials `admin / admin`.
+
+The provisioned **Java Cloud Platform Lab** dashboard contains:
+
+- application availability;
+- aggregate HTTP request rate;
+- JVM memory use;
+- application startup time;
+- successful task-operation rates grouped by operation;
+- unsuccessful task-operation rates grouped by operation and outcome.
+
+Generate activity for the rate panels:
 
 ```bash
 for i in {1..5}; do
@@ -279,11 +135,7 @@ for i in {1..5}; do
     -H "Content-Type: application/json" \
     -d "{\"title\":\"Grafana task $i\"}" > /dev/null
 done
-```
 
-Generate unsuccessful task API outcomes:
-
-```bash
 curl -s http://localhost:8080/api/tasks/999999 > /dev/null
 
 curl -s -X POST http://localhost:8080/api/tasks \
@@ -291,53 +143,13 @@ curl -s -X POST http://localhost:8080/api/tasks \
   -d '{"title":"   "}' > /dev/null
 ```
 
-Allow Prometheus to collect the new counter values, then refresh the dashboard.
+Allow at least two 15-second Prometheus scrapes before evaluating a new five-minute rate series.
 
-The **Successful task operations per second** panel should display separate series such as `list` and `create`.
+Grafana provisioning is maintained in:
 
-The **Unsuccessful task operations per second** panel should display series such as:
+- `grafana/dashboards/java-cloud-platform-lab.json`;
+- `grafana/provisioning/datasources/prometheus.yaml`;
+- `grafana/provisioning/dashboards/dashboards.yaml`.
 
-```text
-get / not_found
-create / validation_error
-```
-
-The panels use five-minute rates. A newly created metric series may require more than one Prometheus scrape before it
-appears as a rate.
-
-The dashboard is provisioned from:
-
-```text
-grafana/dashboards/java-cloud-platform-lab.json
-```
-
-The Prometheus data source is provisioned from:
-
-```text
-grafana/provisioning/datasources/prometheus.yaml
-```
-
-The dashboard provider is configured in:
-
-```text
-grafana/provisioning/dashboards/dashboards.yaml
-```
-
-## Stop the local monitoring setup
-
-Stop the running containers:
-
-```bash
-docker compose down
-```
-
-## Current scope and future improvements
-
-The current setup runs Prometheus and Grafana locally. Prometheus scrapes application metrics from the Spring Boot
-Actuator Prometheus endpoint, and Grafana visualizes application health, runtime, HTTP, and task API metrics.
-
-Future improvements may include:
-
-* Kubernetes-based Prometheus deployment
-* ServiceMonitor configuration
-* Additional application-specific metrics
+Prometheus and Grafana are local-only in this repository. They are not deployed by the Kubernetes manifests or
+Terraform configuration.

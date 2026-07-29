@@ -4,14 +4,12 @@
 
 <h1 align="center">Java Cloud Platform Lab</h1>
 
-Java Cloud Platform Lab is a practical reference implementation showing how a Spring Boot application can be developed,
-persisted, observed, containerized, validated, and deployed across local, Kubernetes, and AWS environments.
+Java Cloud Platform Lab is a practical reference implementation for developing, persisting, observing, packaging, and
+deploying a Spring Boot application across local, Kubernetes, and AWS environments. It connects application code with
+PostgreSQL, containers, infrastructure as code, CI, health checks, metrics, logging, and explicit security boundaries.
 
-The project connects a Java application with practical platform-engineering concerns including PostgreSQL, Docker,
-Kubernetes, Terraform, AWS, CI, health checks, metrics, logging, and infrastructure security boundaries.
-
-It is designed for learning, experimentation, and adaptation. The implementation remains intentionally bounded and
-development-oriented rather than production-ready.
+The project is designed for learning and adaptation. Its runtime and infrastructure choices are intentionally bounded
+and development-oriented.
 
 ## Project status
 
@@ -25,18 +23,10 @@ The repository currently includes:
 - GitHub Actions validation;
 - Terraform-managed AWS infrastructure definitions.
 
-The AWS Terraform configuration has been:
-
-- formatted and validated;
-- initialized against the remote S3 backend;
-- planned and applied in a controlled live-verification session;
-- removed after successful runtime and cleanup verification.
-
-The live exercise confirmed ECS Fargate, the Application Load Balancer, RDS PostgreSQL, Flyway migrations, persistence
-across task replacement, CloudWatch logging, security-group boundaries, zero Terraform drift, and complete teardown.
-
-The environment is not kept running. See
-[AWS Live Verification](docs/aws-live-verification.md) for the reusable deploy–verify–destroy procedure.
+The AWS configuration has also been exercised in a controlled live-verification session covering the load-balanced ECS
+runtime, RDS persistence, Flyway migrations, CloudWatch logging, security-group boundaries, Terraform drift, and
+complete teardown. No AWS environment is kept running. See
+[AWS Live Verification](docs/aws-live-verification.md) for the procedure and verification record.
 
 ## Application capabilities
 
@@ -91,62 +81,29 @@ The local Docker Compose environment connects the task workflow with its API doc
 
 ## Technology stack
 
-### Application
-
-- Java 21
-- Spring Boot 4.1
-- Spring MVC
-- Spring Validation
-- Spring JDBC
-- PostgreSQL
-- Flyway
-- Spring Boot Actuator
-- Micrometer
-- springdoc OpenAPI
-
-### Testing
-
-- JUnit
-- Spring Boot Test
-- H2
-- Testcontainers PostgreSQL
-
-### Platform
-
-- Docker
-- Docker Compose
-- Kubernetes
-- Prometheus
-- Grafana
-- GitHub Actions
-- Terraform
-- AWS
-
-### AWS design
-
-- Amazon VPC
-- Application Load Balancer
-- Amazon ECS Fargate
-- Amazon ECR
-- Amazon RDS for PostgreSQL
-- AWS Secrets Manager
-- AWS Identity and Access Management
-- Amazon CloudWatch Logs
+| Area | Technologies |
+|---|---|
+| Application | Java 21, Spring Boot 4.1, Spring MVC, Validation, JDBC, Actuator, Micrometer, springdoc OpenAPI |
+| Persistence | PostgreSQL, Flyway |
+| Testing | JUnit, Spring Boot Test, H2, Testcontainers PostgreSQL |
+| Local platform | Docker, Docker Compose, Prometheus, Grafana |
+| Deployment and CI | Kubernetes, GitHub Actions, Terraform |
+| AWS | VPC, Application Load Balancer, ECS Fargate, ECR, RDS, Secrets Manager, IAM, CloudWatch Logs |
 
 ## Architecture overview
 
 ```mermaid
 flowchart LR
-    User[User or API client]
-    Application[Spring Boot application]
+    Client[Browser or API client]
+    Application[Task board and REST API]
     Database[(PostgreSQL)]
-    Metrics[Prometheus]
-    Dashboard[Grafana]
+    Prometheus[Prometheus]
+    Grafana[Grafana]
 
-    User --> Application
+    Client --> Application
     Application --> Database
-    Metrics -->|scrapes| Application
-    Dashboard -->|queries| Metrics
+    Prometheus -->|scrapes metrics| Application
+    Grafana -->|queries| Prometheus
 ```
 
 The same Spring Boot application is prepared for several execution targets:
@@ -241,54 +198,23 @@ Detailed run, validation, troubleshooting, Kubernetes, and AWS procedures are ma
 
 ## Observability
 
-The application exposes metrics through:
-
-```text
-/actuator/prometheus
-```
-
-The local Docker Compose environment includes:
-
-- Prometheus scraping the application;
-- a provisioned Grafana data source;
-- a provisioned Grafana dashboard;
-- a Prometheus application-availability alert rule;
-- application-specific task API metrics.
-
-Prometheus queries, custom metrics, alert verification, and dashboard details are documented in
-[Monitoring](docs/monitoring.md).
+The application exposes Prometheus-format metrics at `/actuator/prometheus`. Docker Compose provisions Prometheus,
+an application-availability alert rule, and a Grafana dashboard for application, JVM, HTTP, and task-operation metrics.
+Queries and verification steps are documented in [Monitoring](docs/monitoring.md).
 
 ## Kubernetes
 
-The Kubernetes configuration defines:
-
-- one application Deployment;
-- one ClusterIP Service;
-- datasource configuration through a ConfigMap and Secret;
-- separate readiness and liveness probes;
-- CPU and memory requests and limits;
-- a non-root security context, restricted container privileges, and a read-only root filesystem.
-
-PostgreSQL is not deployed by the Kubernetes manifests. A reachable external database must be configured before the
-application can start successfully. The tracked Secret is an example that must be copied and populated locally before
-deployment.
+The Kubernetes manifests define one application Deployment and ClusterIP Service, externalized datasource settings,
+health probes, resource constraints, and a hardened non-root security context. PostgreSQL is deliberately external to
+the manifests, and the tracked Secret is an example that must be copied and populated locally before deployment.
 
 Operational commands are documented in [Operations](docs/operations.md).
 
 ## Terraform and AWS
 
-The Terraform root module defines:
-
-- VPC networking across two Availability Zones;
-- public and private subnets;
-- an internet-facing Application Load Balancer;
-- an ECS Fargate application service;
-- a private ECR repository;
-- a private RDS PostgreSQL database;
-- RDS-managed credentials in Secrets Manager;
-- an ECS task execution role;
-- CloudWatch application logging;
-- security-group boundaries between the load balancer, application, and database.
+The Terraform root module defines two-AZ VPC networking, an internet-facing Application Load Balancer, ECS Fargate,
+private ECR and RDS resources, RDS-managed credentials in Secrets Manager, an ECS execution role, CloudWatch logging,
+and security-group boundaries between the load balancer, application, and database.
 
 The ECS tasks currently retain public IPv4 addresses for outbound AWS service access because the environment does not
 include a NAT gateway or VPC endpoints.
@@ -322,25 +248,14 @@ CI does not:
 - apply infrastructure;
 - deploy the application.
 
-## Current limitations
+## Current scope
 
-The project intentionally does not provide:
+The project intentionally omits production edge and scaling features such as HTTPS, a custom domain, WAF, autoscaling,
+Multi-AZ RDS, retained backups, and private ECS networking with managed egress. Image publishing and deployment remain
+manual. The Kubernetes manifests do not include Ingress, PostgreSQL, Prometheus, or Grafana.
 
-- HTTPS or a custom domain;
-- AWS WAF or load-balancer authentication;
-- ECS autoscaling or multiple desired tasks;
-- private ECS subnets with NAT or VPC endpoints;
-- Multi-AZ RDS;
-- retained database backups or final snapshots;
-- automated image publishing;
-- automated deployment;
-- a repository-managed remote Terraform state bucket;
-- Kubernetes Ingress;
-- Kubernetes-hosted PostgreSQL, Prometheus, or Grafana;
-- production capacity planning or load testing.
-
-These boundaries keep the repository finite, inspectable, and useful as a practical platform-engineering reference
-implementation for learning, experimentation, and adaptation.
+These boundaries keep the repository finite and make the implemented application and platform behavior straightforward
+to inspect.
 
 ## Documentation
 
@@ -349,7 +264,8 @@ implementation for learning, experimentation, and adaptation.
 | [Architecture](docs/architecture.md) | Component relationships, runtime topologies, trust boundaries, and design decisions |
 | [Operations](docs/operations.md) | Running, validating, troubleshooting, and cleaning up environments |
 | [Monitoring](docs/monitoring.md) | Metrics, Prometheus, alert rules, and Grafana |
-| [Terraform](terraform/README.md) | AWS resources, variables, outputs, backend, image publishing, and infrastructure limitations |
+| [Terraform](terraform/README.md) | AWS resources, variables, outputs, backend behavior, and infrastructure limitations |
+| [AWS Live Verification](docs/aws-live-verification.md) | Controlled AWS runtime verification and teardown record |
 | [Changelog](CHANGELOG.md) | Stable release history and release highlights |
 
 ## License
