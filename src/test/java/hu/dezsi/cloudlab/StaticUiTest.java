@@ -24,7 +24,9 @@ class StaticUiTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Task Board")))
                 .andExpect(content().string(containsString("/assets/logo.svg")))
-                .andExpect(content().string(containsString("/assets/favicon.svg")));
+                .andExpect(content().string(containsString("/assets/favicon.svg")))
+                .andExpect(content().string(containsString("/theme.js")))
+                .andExpect(content().string(containsString("theme-preference")));
     }
 
     @Test
@@ -35,10 +37,19 @@ class StaticUiTest {
     }
 
     @Test
+    void themeJavaScriptIsServed() throws Exception {
+        mockMvc.perform(get("/theme.js"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("cloudlab-theme")))
+                .andExpect(content().string(containsString("prefers-color-scheme")));
+    }
+
+    @Test
     void stylesAreServed() throws Exception {
         mockMvc.perform(get("/styles.css"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("task-item")));
+                .andExpect(content().string(containsString("task-item")))
+                .andExpect(content().string(containsString("[data-theme=\"dark\"]")));
     }
 
     @Test

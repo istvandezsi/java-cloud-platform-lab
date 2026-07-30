@@ -3,16 +3,42 @@
     --background: #f6f8fb;
     --surface: #ffffff;
     --surface-muted: #f1f5f9;
+    --control: #ffffff;
     --text: #111827;
     --muted: #64748b;
     --border: #dbe3ee;
     --accent: #2563eb;
+    --accent-button: #2563eb;
+    --accent-contrast: #ffffff;
     --accent-soft: #eff6ff;
     --success: #047857;
     --success-soft: #ecfdf5;
     --danger: #b42318;
     --danger-soft: #fff1f2;
+    --placeholder: #94a3b8;
+    --focus-ring: rgba(37, 99, 235, 0.22);
     font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+:root[data-theme="dark"] {
+    color-scheme: dark;
+    --background: #0b1120;
+    --surface: #111827;
+    --surface-muted: #172033;
+    --control: #0f172a;
+    --text: #f1f5f9;
+    --muted: #a5b4c7;
+    --border: #334155;
+    --accent: #60a5fa;
+    --accent-button: #2563eb;
+    --accent-contrast: #ffffff;
+    --accent-soft: #172554;
+    --success: #34d399;
+    --success-soft: #052e2b;
+    --danger: #f87171;
+    --danger-soft: #3f1418;
+    --placeholder: #7c8da5;
+    --focus-ring: rgba(96, 165, 250, 0.38);
 }
 
 * {
@@ -21,6 +47,18 @@
 
 [hidden] {
     display: none !important;
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    border: 0;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
 }
 
 body {
@@ -41,8 +79,8 @@ button {
     min-height: 2.75rem;
     border: 0;
     border-radius: 0.7rem;
-    background: var(--accent);
-    color: #ffffff;
+    background: var(--accent-button);
+    color: var(--accent-contrast);
     cursor: pointer;
     font-size: 1rem;
     font-weight: 700;
@@ -57,24 +95,24 @@ button:disabled {
 }
 
 button:focus-visible,
-input:focus-visible {
-    outline: 3px solid rgba(37, 99, 235, 0.22);
+input:not([type="radio"]):focus-visible {
+    outline: 3px solid var(--focus-ring);
     outline-offset: 2px;
 }
 
-input {
+input:not([type="radio"]) {
     width: 100%;
     min-width: 0;
     min-height: 2.75rem;
     border: 1px solid var(--border);
     border-radius: 0.7rem;
-    background: #ffffff;
+    background: var(--control);
     color: var(--text);
     padding: 0.72rem 0.9rem;
 }
 
 input::placeholder {
-    color: #94a3b8;
+    color: var(--placeholder);
 }
 
 .page {
@@ -90,10 +128,76 @@ input::placeholder {
     margin-bottom: 2rem;
 }
 
+.page-heading {
+    min-width: 0;
+}
+
 .project-logo {
     width: clamp(4.5rem, 9vw, 6rem);
     height: auto;
     flex: 0 0 auto;
+}
+
+.theme-selector {
+    flex: 0 0 auto;
+    align-self: center;
+    margin: 0 0 0 auto;
+    border: 0;
+    padding: 0;
+}
+
+.theme-options {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.2rem;
+    border: 1px solid var(--border);
+    border-radius: 0.8rem;
+    background: var(--surface);
+    padding: 0.25rem;
+}
+
+.theme-options label {
+    position: relative;
+    cursor: pointer;
+}
+
+.theme-options input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.theme-choice {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.55rem;
+    color: var(--muted);
+}
+
+.theme-choice svg {
+    width: 1rem;
+    height: 1rem;
+    flex: 0 0 auto;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.8;
+}
+
+.theme-options input:checked + span {
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+
+.theme-options input:focus-visible + span {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
 }
 
 .eyebrow {
@@ -260,7 +364,7 @@ h2 {
     align-items: center;
     border: 1px solid var(--border);
     border-radius: 0.9rem;
-    background: #ffffff;
+    background: var(--surface);
     padding: 0.75rem;
 }
 
@@ -321,8 +425,16 @@ h2 {
     }
 
     .page-header {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
         align-items: center;
         gap: 1rem;
+    }
+
+    .theme-selector {
+        grid-column: 1 / -1;
+        justify-self: start;
+        margin-left: 0;
     }
 
     .project-logo {
