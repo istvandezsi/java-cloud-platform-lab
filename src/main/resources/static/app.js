@@ -8,6 +8,20 @@ const refreshButton = document.querySelector("#refresh-button");
 const totalCount = document.querySelector("#total-count");
 const openCount = document.querySelector("#open-count");
 const completedCount = document.querySelector("#completed-count");
+const themePreferenceInputs = document.querySelectorAll("input[name=\"theme-preference\"]");
+
+function initializeThemeSelector() {
+    const currentPreference = window.cloudLabTheme.getPreference();
+
+    themePreferenceInputs.forEach((input) => {
+        input.checked = input.value === currentPreference;
+        input.addEventListener("change", () => {
+            if (input.checked) {
+                window.cloudLabTheme.setPreference(input.value);
+            }
+        });
+    });
+}
 
 async function readErrorMessage(response) {
     const fallbackMessage = `Request failed with status ${response.status}`;
@@ -238,4 +252,5 @@ taskTitleInput.addEventListener("input", updateCreateTaskButtonState);
 refreshButton.addEventListener("click", loadTasks);
 
 updateCreateTaskButtonState();
+initializeThemeSelector();
 loadTasks();
