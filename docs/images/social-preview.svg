@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title description">
+    <title id="title">Java Cloud Platform Lab social preview</title>
+    <desc id="description">The project flask logo beside the project name and its primary technologies.</desc>
+
+    <defs>
+        <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#0b1120"/>
+            <stop offset="1" stop-color="#111827"/>
+        </linearGradient>
+        <radialGradient id="accent-glow" cx="50%" cy="50%" r="50%">
+            <stop offset="0" stop-color="#2563eb" stop-opacity="0.22"/>
+            <stop offset="1" stop-color="#2563eb" stop-opacity="0"/>
+        </radialGradient>
+    </defs>
+
+    <rect width="1280" height="640" fill="url(#background)"/>
+    <circle cx="1110" cy="70" r="360" fill="url(#accent-glow)"/>
+    <path d="M0 566H1280" stroke="#334155" stroke-width="2"/>
+    <path d="M0 570H1280" stroke="#2563eb" stroke-width="4"/>
+
+    <g transform="translate(92 156) scale(2.55)">
+        <rect width="128" height="128" rx="30" fill="#0f172a" stroke="#334155" stroke-width="1.5"/>
+        <path
+                d="M47 24h34M52 24v27L29 91c-5 9 2 19 12 19h46c10 0 17-10 12-19L76 51V24"
+                fill="none"
+                stroke="#ffffff"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="7"/>
+        <path
+                d="M36 82c9-5 17 5 27 0 10-6 19 5 29 0l7 14c3 7-2 14-12 14H41c-10 0-15-7-12-14l7-14Z"
+                fill="#2563eb"/>
+        <path
+                d="M39 94h50M36 102h56"
+                fill="none"
+                stroke="#ffffff"
+                stroke-linecap="round"
+                stroke-width="4"/>
+        <circle cx="47" cy="69" r="4" fill="#93c5fd"/>
+        <circle cx="65" cy="61" r="3" fill="#93c5fd"/>
+        <circle cx="78" cy="71" r="5" fill="#93c5fd"/>
+    </g>
+
+    <g font-family="Inter, Segoe UI, Arial, sans-serif">
+        <text x="480" y="190" fill="#60a5fa" font-size="22" font-weight="700" letter-spacing="3.5">
+            PRODUCTION-MINDED REFERENCE PROJECT
+        </text>
+        <text x="476" y="294" fill="#f8fafc" font-size="72" font-weight="750" letter-spacing="-2">
+            Java Cloud
+        </text>
+        <text x="476" y="380" fill="#f8fafc" font-size="72" font-weight="750" letter-spacing="-2">
+            Platform Lab
+        </text>
+        <text x="480" y="454" fill="#a5b4c7" font-size="28" font-weight="500">
+            Spring Boot · Kubernetes · Terraform · AWS
+        </text>
+    </g>
+</svg>
